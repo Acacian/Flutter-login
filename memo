@@ -74,8 +74,8 @@
         </array>
   아래 내용 추가. REVERSED_CLIENT_ID는 다운로드 받은 GoogleService-Info.plist 파일에 나와있으니 해당 ID를 넣어주면 된다.
    >>>> 다운로드 파일에 있음
-  	<key>CLIENT_ID</key>
-	<string>966700247743-bdi7jtm301n5irknajgt8s9jjk2svg7l.apps.googleusercontent.com</string>
+  	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.966700247743-bdi7jtm301n5irknajgt8s9jjk2svg7l</string>
 
 
   4. firebase에 정보를 넘겨야 한다.
