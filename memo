@@ -27,13 +27,77 @@
   https://velog.io/@qazws78941/Flutter-Cloud-Firestore-2
   1. flutter pub add cloud_firestore
   2. Streambuilder로 데이터 읽어오기
+  3. 데이터 추가하기(snapshot.data!.docs.length > 데이터의 개수)
+  -> !를 통해서 null이 아님을 명시
+  4.  .where, .limit, .orderby, .limitToLast 등으로 데이터 수정하기(쿼리, 필요시) >> rankpoint로 orderby시키면 될듯?
+
+4. 가로모드 고정
+  1. SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+  
+  main.dart에 아래 코드 넣고, import로 기본 모듈 불러오기 import 'package:flutter/services.dart'
+
+5. Oauth
+  kakao, google, naver, apple 등의 로그인을 사용할 수 있음
+  1. flutter pub add firebase_auth 를 yaml에 추가
+  2. import 'package:firebase_auth/firebase_auth.dart'; 를 추가
+  3. Fireabse 세팅시 Android / IOS 각 플랫폼에 맞는 파일을 반드시 앱에 넣고 있어야 한다. Firebase 구성 파일인데, 구글 로그인을 활성화하면 구성 파일이 변경된 것이기에 새로운 구성파일로 변경해주어야 한다는 내용
+  4. flutter pub add google_sign_in << 구글용
+  5. Future<void> signInWithGoogle(BuildContext context) async {
+    GoogleSignIn _googleSignIn = GoogleSignIn();
+    GoogleSignInAccount? _account = await _googleSignIn.signIn();
+  }
+  추가하기
+
+우선 구글로그인부터 구현할 예정
+6. SHA 인증하기 (디버그, 릴리즈, 스토어 각각 다르고, 스토어에 낼 거면 스토어용 따로 필요함.) , firebase에 등록하기
+
+  ** 혹시나 자바 버전에러뜨면
+  android -> gradle.properties에 아래 내용 추가
+  org.gradle.java.home=C:/Program Files/Java/jdk-17
+
+  1. 발급받고 project > Android > app에 있는 json파일 변경
+  2. ios는 아래 경로로 이동하면 plist 파일이 있는데 이 부분도 새로 다운받은 파일로 교체
+  3. ios > Runner > Info.plist에 들어가서, 
+      <key>CFBundleURLTypes</key>
+        <array>
+            <dict>
+                <key>CFBundleTypeRole</key>
+                <string>Editor</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                  <string>{REVERSED_CLIENT_ID}</string>
+                </array>
+            </dict>
+        </array>
+  아래 내용 추가. REVERSED_CLIENT_ID는 다운로드 받은 GoogleService-Info.plist 파일에 나와있으니 해당 ID를 넣어주면 된다.
+   >>>> 다운로드 파일에 있음
+  	<key>CLIENT_ID</key>
+	<string>966700247743-bdi7jtm301n5irknajgt8s9jjk2svg7l.apps.googleusercontent.com</string>
 
 
-
-
-
-
-
+  4. firebase에 정보를 넘겨야 한다.
+        Future<void> signInWithGoogle(BuildContext context) async {
+          GoogleSignIn _googleSignIn = GoogleSignIn();
+          GoogleSignInAccount? _account = await _googleSignIn.signIn();
+          if (_account != null) {
+            GoogleSignInAuthentication _authentication =
+                await _account.authentication;
+            OAuthCredential _googleCredential = GoogleAuthProvider.credential(
+              idToken: _authentication.idToken,
+              accessToken: _authentication.accessToken,
+            );
+            UserCredential _credential =
+                await _firebaseAuth.signInWithCredential(_googleCredential);
+            if (_credential.user != null) {
+              user = _credential.user;
+              logger.e(user);
+            }
+          }
+      }
+  이 코드 응용해서 사용하면 됨
 
 
 
