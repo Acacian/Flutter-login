@@ -1,7 +1,32 @@
 1. dependencies:
-  shared_preferences: ^2.1.0
+  shared_preferences: ^2.1.0 << flutter install이 더빠름
 
-2. main에 추가
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  // 예시
+  // 키(counter)에 정수형 데이터(10) 저장
+  await prefs.setInt('counter', 10);
+
+이후, 필요한 페이지에 추가하였음.(ex: 로그인)
+
+2. firebase연동
+  git의 다른 예시에서는 mysql을 사용하였지만, 이번에는 flutter를 쓰므로 firebase를 쓸 예정.
+  1. npm install -g firebase-tools
+  2. firebase login , firebase init (언제쓰는지 기억안남.공식문서참조)
+  3. firebase projects:list
+  4. firebase login:ci(토큰) > 환경변수 저장 or --token으로 사용
+  5. flutter와 연동(firebase 홈페이지참조)
+  6. flutter pub add firebase_core (필요한지는 모르겠음)
+  7. - path에 cache.bin 경로 넣어줘야 flutterfire 됨
+  8. import 'package:firebase_core/firebase_core.dart';
+      import 'firebase_options.dart';
+
+  만약 용량이 큰 파일을 옮겨야 할 경우(CRUD 같은 간단한거말고) firestore을 쓰는 게 더 적합할 수 있음
+
+3. firestore연동
+  데이터 추가(realtime 아니면 이거써야하는듯?)
+  https://velog.io/@qazws78941/Flutter-Cloud-Firestore-2
+  1. flutter pub add cloud_firestore
+  2. Streambuilder로 데이터 읽어오기
 
 
 
@@ -9,5 +34,12 @@
 
 
 
+
+
+
+
+
+*** 참고
+flutter clean / flutter pub get 쓰면 리셋되니까 참고
 
 추가
