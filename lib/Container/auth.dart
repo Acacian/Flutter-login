@@ -69,7 +69,7 @@ class _LoginState extends State<Loginpage> {
           logger.i(user);
         }
         //기존에 firebase에 저장되어 있던 유저가 아닐 경우,
-        //새로운 DB로 저장
+        //* 새로운 DB로 저장
         if (user != null) {
           var db = FirebaseFirestore.instance;
           db.collection('Users').doc(user.uid).get().then((doc) {
@@ -84,23 +84,17 @@ class _LoginState extends State<Loginpage> {
             }
           });
         }
-        // 모든 과정을 거치면 홈화면으로 이동
-        if (user != null) {
+        // 모든 과정을 거치면 홈화면으로 이동.
+        //! mounted를 통해 user정보가 null이 아닐 때 화면연동
+        if (user != null && context.mounted) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => home.Home()),
+            MaterialPageRoute(builder: (context) => const home.Home()),
           );
         }
       }
     } catch (e) {
       logger.e('Error during google sign in: $e');
     }
-  }
-
-  Future<void> signOut() async {
-    final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
-
-    await firebaseAuth.signOut();
-    await GoogleSignIn().signOut();
   }
 }
