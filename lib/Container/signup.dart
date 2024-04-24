@@ -66,6 +66,19 @@ class _SignUpState extends State<Signuppage> {
       });
       return;
     }
+    if (password.length < 6) {
+      setState(() {
+        _errorMessage = '비밀번호는 6자 이상이어야 합니다';
+      });
+      return;
+    }
+    // email은 @이 들어가야 하고, @가 2개 이상이면 안됨
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+      setState(() {
+        _errorMessage = '이메일 형식이 올바르지 않습니다';
+      });
+      return;
+    }
 
     void showSnackBar(String message) {
       ScaffoldMessenger.of(context).showSnackBar(
