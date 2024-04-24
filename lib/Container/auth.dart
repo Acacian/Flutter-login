@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 // 로그인 성공 시 다음 화면으로 넘어감
 import 'home.dart' as home;
+import 'signup.dart' as signup;
 
 class Loginpage extends StatefulWidget {
   const Loginpage({super.key});
@@ -20,12 +21,13 @@ class _LoginState extends State<Loginpage> {
   late TextEditingController _loginController;
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
+  String? _errorMessage; // 에러 메시지를 저장할 변수
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: null,
+        automaticallyImplyLeading: false,
         title: const Text('Login Page'),
       ),
       body: Center(
@@ -52,6 +54,12 @@ class _LoginState extends State<Loginpage> {
                 ),
               ),
               const SizedBox(height: 16.0),
+              if (_errorMessage != null) // 에러시에만 표시
+                Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              const SizedBox(height: 16.0),
               ElevatedButton(
                 onPressed: () {
                   _login();
@@ -59,6 +67,17 @@ class _LoginState extends State<Loginpage> {
                 child: const Text('Login'),
               ),
               const SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: () {
+                  // 회원가입 화면으로 이동하는 로직 추가
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const signup.signuppage(),
+                      ));
+                },
+                child: const Text('Sign Up'),
+              ),
               ElevatedButton(
                 onPressed: () {
                   signInWithGoogle(context);
@@ -89,18 +108,6 @@ class _LoginState extends State<Loginpage> {
     super.dispose();
   }
 
-  void _createUsers() {
-    var db = FirebaseFirestore.instance;
-    db.collection('Users').add({
-      'id': _loginController.text,
-      'is_login': false,
-      'nickname': _loginController.text,
-      'pw': _loginController.text,
-      'rankpoint': 500,
-      'createTime': Timestamp.now(),
-    });
-  }
-
   void _login() {
     var db = FirebaseFirestore.instance;
     db
@@ -119,6 +126,9 @@ class _LoginState extends State<Loginpage> {
               MaterialPageRoute(builder: (context) => const home.Home()),
             );
           } else {
+            setState(() {
+              _errorMessage = '로그인에 실패하였습니다. 회원가입을 진행해주세요.';
+            });
             Logger().e('Login Fail');
           }
         }

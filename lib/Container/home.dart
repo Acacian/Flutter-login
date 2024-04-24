@@ -16,7 +16,7 @@ class _Home extends State<Home> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: null,
+        automaticallyImplyLeading: false,
         title: const Text('Home Page'),
       ),
       body: Center(
