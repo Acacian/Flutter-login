@@ -106,7 +106,7 @@ class _LoginpageState extends State<Loginpage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Logintest page'),
+        title: const Text('Login Page'),
       ),
       body: Column(
         children: [
@@ -125,7 +125,8 @@ class _LoginpageState extends State<Loginpage> {
             controller: _LoginpageController,
           ),
         ),
-        ElevatedButton(onPressed: _createUsers, child: const Text('생성')),
+        ElevatedButton(
+            onPressed: _createUsers, child: const Text('Signup/회원가입')),
       ],
     );
   }
