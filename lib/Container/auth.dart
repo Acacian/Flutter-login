@@ -17,26 +17,113 @@ class Loginpage extends StatefulWidget {
 }
 
 class _LoginState extends State<Loginpage> {
+  late TextEditingController _loginController;
+  late TextEditingController _emailController;
+  late TextEditingController _passwordController;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: null,
         title: const Text('Login Page'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            ElevatedButton(
-              onPressed: () {
-                signInWithGoogle(context);
-              },
-              child: const Text('Sign in with Google'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  hintText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  hintText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: () {
+                  _login();
+                },
+                child: const Text('Login'),
+              ),
+              const SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: () {
+                  signInWithGoogle(context);
+                },
+                child: const Text('Sign in with Google'),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+// 기본 CRUD
+  @override
+  void initState() {
+    super.initState();
+    _loginController = TextEditingController();
+    _emailController = TextEditingController();
+    _passwordController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _loginController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _createUsers() {
+    var db = FirebaseFirestore.instance;
+    db.collection('Users').add({
+      'id': _loginController.text,
+      'is_login': false,
+      'nickname': _loginController.text,
+      'pw': _loginController.text,
+      'rankpoint': 500,
+      'createTime': Timestamp.now(),
+    });
+  }
+
+  void _login() {
+    var db = FirebaseFirestore.instance;
+    db
+        .collection('Users')
+        .where('id', isEqualTo: _emailController.text)
+        .get()
+        .then((value) {
+      if (value.docs.isEmpty) {
+        Logger().e('No User');
+      } else {
+        for (var element in value.docs) {
+          if (element['pw'] == _passwordController.text) {
+            Logger().i('Login Success');
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const home.Home()),
+            );
+          } else {
+            Logger().e('Login Fail');
+          }
+        }
+      }
+    });
   }
 
   //Oauth : Google
@@ -84,6 +171,15 @@ class _LoginState extends State<Loginpage> {
             }
           });
         }
+        //* 만약 기존의 유저라면, 로그인 시간을 업데이트
+        else {
+          var db = FirebaseFirestore.instance;
+          db.collection('Users').doc(user?.uid).update({
+            'is_login': true,
+            'createTime': Timestamp.now(),
+          });
+        }
+
         // 모든 과정을 거치면 홈화면으로 이동.
         //! mounted를 통해 user정보가 null이 아닐 때 화면연동
         if (user != null && context.mounted) {
