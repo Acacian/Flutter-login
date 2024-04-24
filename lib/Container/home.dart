@@ -13,14 +13,19 @@ class _Home extends State<Home> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home Page'),
+        title: const Text('Login Page'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>
-          
-            
+          children: <Widget>[
+            ElevatedButton(
+              onPressed: () {
+              },
+                signInWithGoogle(context);
+              child: const Text('Sign in with Google'),
+            ),
+          ],
         ),
       ),
     );

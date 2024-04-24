@@ -6,15 +6,15 @@ import 'firebase_options.dart';
 import 'Container/auth.dart';
 
 // 가로모드쓰려고
-import 'package:flutter/services.dart';
+// import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   //가로모드고정
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]);
+  // SystemChrome.setPreferredOrientations([
+  //   DeviceOrientation.landscapeLeft,
+  //   DeviceOrientation.landscapeRight,
+  // ]);
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,

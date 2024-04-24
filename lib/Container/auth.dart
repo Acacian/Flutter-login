@@ -6,6 +6,9 @@ import 'package:logger/logger.dart';
 // DB 저장할거임
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// 로그인 성공 시 다음 화면으로 넘어감
+import 'home.dart' as home;
+
 class Loginpage extends StatefulWidget {
   const Loginpage({super.key});
 
@@ -80,6 +83,13 @@ class _LoginState extends State<Loginpage> {
               });
             }
           });
+        }
+        // 모든 과정을 거치면 홈화면으로 이동
+        if (user != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => home.Home()),
+          );
         }
       }
     } catch (e) {
