@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:logger/logger.dart';
 
+// DB 저장할거임
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Loginpage extends StatefulWidget {
   const Loginpage({super.key});
 
@@ -53,8 +56,6 @@ class _LoginState extends State<Loginpage> {
           idToken: authentication.idToken,
           accessToken: authentication.accessToken,
         );
-        // Check the credential(자격증명 확인)
-        print("idToken: ${authentication.idToken}");
 
         // 인증 자격증명을 사용해 Firebase에 로그인
         UserCredential credential =
@@ -62,7 +63,23 @@ class _LoginState extends State<Loginpage> {
         // 로그인 성공 시 user변수에 로그인한 사용자 정보를 저장
         if (credential.user != null) {
           user = credential.user;
-          logger.e(user);
+          logger.i(user);
+        }
+        //기존에 firebase에 저장되어 있던 유저가 아닐 경우,
+        //새로운 DB로 저장
+        if (user != null) {
+          var db = FirebaseFirestore.instance;
+          db.collection('Users').doc(user.uid).get().then((doc) {
+            if (!doc.exists) {
+              db.collection('Users').doc(user?.uid).set({
+                'id': user?.uid,
+                'is_login': false,
+                'nickname': user?.displayName,
+                'rankpoint': 500,
+                'createTime': Timestamp.now(),
+              });
+            }
+          });
         }
       }
     } catch (e) {
