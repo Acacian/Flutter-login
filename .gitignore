@@ -44,3 +44,5 @@ app.*.map.json
 
 # Ignore Files(추가)
 firebase_options.dart
+memo.dart
+android/app/google-services.json

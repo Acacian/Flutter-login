@@ -3,7 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 // 로그인페이지 가져오기(디폴트페이지)
-import 'Container/loginpage.dart';
+import 'Container/auth.dart';
 
 // 가로모드쓰려고
 import 'package:flutter/services.dart';
