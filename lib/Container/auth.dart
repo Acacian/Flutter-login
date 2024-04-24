@@ -18,7 +18,6 @@ class Loginpage extends StatefulWidget {
 }
 
 class _LoginState extends State<Loginpage> {
-  late TextEditingController _loginController;
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
   String? _errorMessage; // 에러 메시지를 저장할 변수
@@ -73,7 +72,7 @@ class _LoginState extends State<Loginpage> {
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const signup.signuppage(),
+                        builder: (context) => const signup.Signuppage(),
                       ));
                 },
                 child: const Text('Sign Up'),
@@ -91,49 +90,40 @@ class _LoginState extends State<Loginpage> {
     );
   }
 
-// 기본 CRUD
   @override
   void initState() {
     super.initState();
-    _loginController = TextEditingController();
     _emailController = TextEditingController();
     _passwordController = TextEditingController();
   }
 
-  @override
-  void dispose() {
-    _loginController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+  void showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
-  void _login() {
-    var db = FirebaseFirestore.instance;
-    db
-        .collection('Users')
-        .where('id', isEqualTo: _emailController.text)
-        .get()
-        .then((value) {
-      if (value.docs.isEmpty) {
-        Logger().e('No User');
-      } else {
-        for (var element in value.docs) {
-          if (element['pw'] == _passwordController.text) {
-            Logger().i('Login Success');
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const home.Home()),
-            );
-          } else {
-            setState(() {
-              _errorMessage = '로그인에 실패하였습니다. 회원가입을 진행해주세요.';
-            });
-            Logger().e('Login Fail');
-          }
-        }
+  void _login() async {
+    FirebaseAuth firebaseAuth = FirebaseAuth.instance;
+    Logger logger = Logger();
+    User? user;
+
+    UserCredential credential = await firebaseAuth.signInWithEmailAndPassword(
+      email: _emailController.text,
+      password: _passwordController.text,
+    );
+    if (credential.user != null) {
+      user = credential.user;
+      logger.i(user);
+      if (mounted) {
+        Logger().i('Login Success');
+        Navigator.push(context,
+            MaterialPageRoute(builder: (context) => const home.Home()));
       }
-    });
+    }
   }
 
   //Oauth : Google
@@ -177,6 +167,7 @@ class _LoginState extends State<Loginpage> {
                 'nickname': user?.displayName,
                 'rankpoint': 500,
                 'createTime': Timestamp.now(),
+                'pw': 'google',
               });
             }
           });

@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:logger/logger.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'auth.dart' as auth;
 
-class signuppage extends StatefulWidget {
-  const signuppage({super.key});
+class Signuppage extends StatefulWidget {
+  const Signuppage({super.key});
 
   @override
-  State<signuppage> createState() => _SignUpState();
+  State<Signuppage> createState() => _SignUpState();
 }
 
-class _SignUpState extends State<signuppage> {
+class _SignUpState extends State<Signuppage> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
@@ -26,7 +28,7 @@ class _SignUpState extends State<signuppage> {
     _confirmPasswordController = TextEditingController();
   }
 
-  void _signUp() {
+  void _signUp() async {
     // 회원가입 로직 구현
     String name = _nameController.text.trim();
     String email = _emailController.text.trim();
@@ -34,29 +36,80 @@ class _SignUpState extends State<signuppage> {
     String confirmPassword = _confirmPasswordController.text.trim();
 
     // 입력 값 검증
-    if (name.isEmpty ||
-        email.isEmpty ||
-        password.isEmpty ||
-        confirmPassword.isEmpty) {
+    if (name.isEmpty) {
       setState(() {
-        _errorMessage = '모든 필드를 입력해주세요.';
+        _errorMessage = '이름을 입력하세요';
       });
       return;
     }
-
+    if (email.isEmpty) {
+      setState(() {
+        _errorMessage = '이메일을 입력하세요';
+      });
+      return;
+    }
+    if (password.isEmpty) {
+      setState(() {
+        _errorMessage = '비밀번호를 입력하세요';
+      });
+      return;
+    }
+    if (confirmPassword.isEmpty) {
+      setState(() {
+        _errorMessage = '비밀번호 확인을 입력하세요';
+      });
+      return;
+    }
     if (password != confirmPassword) {
       setState(() {
-        _errorMessage = '비밀번호가 일치하지 않습니다.';
+        _errorMessage = '비밀번호가 일치하지 않습니다';
       });
       return;
     }
 
-    // 이메일 여부 확인
-    if (!email.contains('@')) {
-      setState(() {
-        _errorMessage = '올바른 이메일 주소를 입력해주세요.';
-      });
-      return;
+    void showSnackBar(String message) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+
+    final Logger logger = Logger();
+    User? user;
+    try {
+      FirebaseAuth firebaseAuth = FirebaseAuth.instance;
+      UserCredential credential = await firebaseAuth
+          .createUserWithEmailAndPassword(email: email, password: password);
+      if (credential.user != null) {
+        user = credential.user;
+        logger.i(user);
+      } else {
+        showSnackBar("Server Error");
+      }
+    } on FirebaseAuthException catch (error) {
+      logger.e(error.code);
+      String? errorCode;
+      switch (error.code) {
+        case "email-already-in-use":
+          errorCode = error.code;
+          break;
+        case "invalid-email":
+          errorCode = error.code;
+          break;
+        case "weak-password":
+          errorCode = error.code;
+          break;
+        case "operation-not-allowed":
+          errorCode = error.code;
+          break;
+        default:
+          errorCode = null;
+      }
+      if (errorCode != null) {
+        showSnackBar(errorCode);
+      }
     }
 
     // 회원가입 로직 구현
@@ -73,13 +126,15 @@ class _SignUpState extends State<signuppage> {
       });
 
       // 회원가입 성공 시, 로그인 페이지로 이동
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const auth.Loginpage()),
-      );
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const auth.Loginpage()),
+        );
+      }
     } catch (e) {
       setState(() {
-        _errorMessage = '회원가입에 실패했으니 다시 시도하세요';
+        _errorMessage = '회원가입에 실패했습니다. 다시 시도해주세요';
       });
     }
   }
