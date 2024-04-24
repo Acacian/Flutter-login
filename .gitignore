@@ -43,4 +43,4 @@ app.*.map.json
 /android/app/release
 
 # Ignore All Api
-/lib/firebase_options.dart
+firebase_options.dart
