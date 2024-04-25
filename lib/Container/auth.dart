@@ -7,7 +7,7 @@ import 'package:logger/logger.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 // 로그인 성공 시 다음 화면으로 넘어감
-import 'home.dart' as home;
+import 'room.dart' as room;
 import 'signup.dart' as signup;
 
 class Loginpage extends StatefulWidget {
@@ -121,7 +121,11 @@ class _LoginState extends State<Loginpage> {
       if (mounted) {
         Logger().i('Login Success');
         Navigator.push(context,
-            MaterialPageRoute(builder: (context) => const home.Home()));
+            MaterialPageRoute(builder: (context) => const room.Room()));
+        var db = FirebaseFirestore.instance;
+        db.collection('Users').doc(user?.uid).update({
+          'is_login': true,
+        });
       }
     }
   }
@@ -171,13 +175,10 @@ class _LoginState extends State<Loginpage> {
               });
             }
           });
-        }
-        //* 만약 기존의 유저라면, 로그인 시간을 업데이트
-        else {
+        } else {
           var db = FirebaseFirestore.instance;
           db.collection('Users').doc(user?.uid).update({
             'is_login': true,
-            'createTime': Timestamp.now(),
           });
         }
 
@@ -186,7 +187,7 @@ class _LoginState extends State<Loginpage> {
         if (user != null && context.mounted) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const home.Home()),
+            MaterialPageRoute(builder: (context) => const room.Room()),
           );
         }
       }

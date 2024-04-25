@@ -30,12 +30,14 @@ class _SignUpState extends State<Signuppage> {
 
   void _signUp() async {
     // 회원가입 로직 구현
+    User? user;
     String name = _nameController.text.trim();
     String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
     String confirmPassword = _confirmPasswordController.text.trim();
 
     // 입력 값 검증
+    final Logger logger = Logger();
     if (name.isEmpty) {
       setState(() {
         _errorMessage = '이름을 입력하세요';
@@ -89,8 +91,6 @@ class _SignUpState extends State<Signuppage> {
       );
     }
 
-    final Logger logger = Logger();
-    User? user;
     try {
       FirebaseAuth firebaseAuth = FirebaseAuth.instance;
       UserCredential credential = await firebaseAuth
@@ -98,16 +98,17 @@ class _SignUpState extends State<Signuppage> {
       if (credential.user != null) {
         user = credential.user;
         logger.i(user);
-      } else {
-        showSnackBar("Server Error");
       }
     } on FirebaseAuthException catch (error) {
       logger.e(error.code);
       String? errorCode;
       switch (error.code) {
         case "email-already-in-use":
+          setState(() {
+            _errorMessage = '중복된 이메일입니다';
+          });
           errorCode = error.code;
-          break;
+          return;
         case "invalid-email":
           errorCode = error.code;
           break;
@@ -129,13 +130,13 @@ class _SignUpState extends State<Signuppage> {
     // 예: Firebase Authentication 사용
     try {
       var db = FirebaseFirestore.instance;
-      db.collection('Users').add({
-        'id': email,
+      db.collection('Users').doc(user?.uid).set({
+        'id': user?.uid,
         'is_login': false,
         'nickname': name,
-        'pw': password,
         'rankpoint': 500,
         'createTime': Timestamp.now(),
+        'pw': 'google email auth',
       });
 
       // 회원가입 성공 시, 로그인 페이지로 이동
@@ -156,6 +157,7 @@ class _SignUpState extends State<Signuppage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Sign Up'),
       ),
       body: Center(
