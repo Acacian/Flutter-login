@@ -9,11 +9,9 @@ class Waiting extends StatefulWidget {
 }
 
 class _Waiting extends State<Waiting> {
-  late TextEditingController _nameController;
-  late TextEditingController _publicController;
-  late TextEditingController _maxController;
-  // 검색어 입력을 위한 컨트롤러
-  final _searchController = TextEditingController();
+  // 실시간 채팅
+  final _chatController = TextEditingController();
+  Logger logger = Logger();
 
   @override
   Widget build(BuildContext context) {
