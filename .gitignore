@@ -49,4 +49,4 @@ android/app/google-services.json
 ios/Runner/Info.plist
 memo
 lib/Container
-lib/ReadyContainer/waiting.dart
+lib/ReadyContainer
