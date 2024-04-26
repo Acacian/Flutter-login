@@ -69,11 +69,12 @@ class _LoginState extends State<Loginpage> {
               ElevatedButton(
                 onPressed: () {
                   // 회원가입 화면으로 이동하는 로직 추가
-                  Navigator.push(
+                  Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const signup.Signuppage(),
-                      ));
+                      ),
+                      (route) => false);
                 },
                 child: const Text('Sign Up'),
               ),
@@ -120,12 +121,10 @@ class _LoginState extends State<Loginpage> {
       logger.i(user);
       if (mounted) {
         Logger().i('Login Success');
-        Navigator.push(context,
-            MaterialPageRoute(builder: (context) => const room.Room()));
-        var db = FirebaseFirestore.instance;
-        db.collection('Users').doc(user?.uid).update({
-          'is_login': true,
-        });
+        Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const room.Room()),
+            (route) => false);
       }
     }
   }
@@ -167,7 +166,6 @@ class _LoginState extends State<Loginpage> {
             if (!doc.exists) {
               db.collection('Users').doc(user?.uid).set({
                 'id': user?.uid,
-                'is_login': false,
                 'nickname': user?.displayName,
                 'rankpoint': 500,
                 'createTime': Timestamp.now(),
@@ -176,18 +174,16 @@ class _LoginState extends State<Loginpage> {
             }
           });
         } else {
-          var db = FirebaseFirestore.instance;
-          db.collection('Users').doc(user?.uid).update({
-            'is_login': true,
-          });
+          logger.e('User already exists');
         }
 
         // 모든 과정을 거치면 홈화면으로 이동.
         //! mounted를 통해 user정보가 null이 아닐 때 화면연동
         if (user != null && context.mounted) {
-          Navigator.push(
+          Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => const room.Room()),
+            (route) => false,
           );
         }
       }

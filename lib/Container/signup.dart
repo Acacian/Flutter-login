@@ -132,7 +132,6 @@ class _SignUpState extends State<Signuppage> {
       var db = FirebaseFirestore.instance;
       db.collection('Users').doc(user?.uid).set({
         'id': user?.uid,
-        'is_login': false,
         'nickname': name,
         'rankpoint': 500,
         'createTime': Timestamp.now(),
