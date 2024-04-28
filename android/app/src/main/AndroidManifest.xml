@@ -30,6 +30,11 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+    <!-- // 추가한 내용 -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <application
+        android:usesCleartextTraffic="true">
+    </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility?hl=en and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
