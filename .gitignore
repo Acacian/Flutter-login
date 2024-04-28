@@ -50,3 +50,5 @@ ios/Runner/Info.plist
 memo
 lib/Container
 lib/ReadyContainer
+package-lock.json
+package.json
