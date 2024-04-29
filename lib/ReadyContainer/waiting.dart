@@ -125,8 +125,8 @@ class _WaitingState extends State<Waiting> {
         .remove()
         .then((_) {
       Navigator.of(context).pop();
-      Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (context) => const main.Room()));
+      Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const main.Room()));
     }).catchError((error) {
       logger.e('Error leaving room: $error');
     });
