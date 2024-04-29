@@ -354,17 +354,18 @@ class _Room extends State<Room> {
           // public이면 그대로 넣고, 아니면 자물쇠 그림을 추가함
           if (value['ispublic'] == 'Public') {
             _gameList.add(value['game_name'] +
-                '        ' +
-                value[('members').length] +
-                '/' +
-                value['quantity'].toString());
+                    '        ' +
+                    value[('members').length]?.length ??
+                0 + '/' + value['quantity'] ??
+                0);
           } else {
             _gameList.add(value['game_name'] +
-                '🔒' +
-                '        ' +
-                value[('members').length] +
-                '/' +
-                value['quantity'].toString());
+                    '🔒' +
+                    '        ' +
+                    value[('members').length] +
+                    '/' +
+                    value['quantity'] ??
+                0);
           }
         });
         // 필터링된 게임 리스트 업데이트
