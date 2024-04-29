@@ -250,7 +250,7 @@ class _Make extends State<Make> {
             'ispublic': ispublic,
             'createdTime': DateTime.now().toString(),
             'createdUser': FirebaseAuth.instance.currentUser?.uid,
-            'messages': [],
+            'messages': <Map<String, dynamic>>[],
           },
         ),
       );
@@ -270,7 +270,7 @@ class _Make extends State<Make> {
             'game_password': _privateController.text,
             'createdTime': DateTime.now().toString(),
             'createdUser': FirebaseAuth.instance.currentUser?.uid,
-            'messages': [],
+            'messages': <Map<String, dynamic>>[],
           },
         ),
       );
