@@ -1,0 +1,175 @@
+1. dependencies:
+  shared_preferences: ^2.1.0 << flutter install이 더빠름
+
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  // 예시
+  // 키(counter)에 정수형 데이터(10) 저장
+  await prefs.setInt('counter', 10);
+
+이후, 필요한 페이지에 추가하였음.(ex: 로그인)
+
+2. firebase연동
+  git의 다른 예시에서는 mysql을 사용하였지만, 이번에는 flutter를 쓰므로 firebase를 쓸 예정.
+  1. npm install -g firebase-tools
+  2. firebase login , firebase init (언제쓰는지 기억안남.공식문서참조)
+  3. firebase projects:list
+  4. firebase login:ci(토큰) > 환경변수 저장 or --token으로 사용
+  5. flutter와 연동(firebase 홈페이지참조)
+  6. flutter pub add firebase_core (필요한지는 모르겠음)
+  7. - path에 cache.bin 경로 넣어줘야 flutterfire 됨
+  8. import 'package:firebase_core/firebase_core.dart';
+      import 'firebase_options.dart';
+
+  만약 용량이 큰 파일을 옮겨야 할 경우(CRUD 같은 간단한거말고) firestore을 쓰는 게 더 적합할 수 있음
+
+3. firestore연동
+  데이터 추가(realtime 아니면 이거써야하는듯?)
+  https://velog.io/@qazws78941/Flutter-Cloud-Firestore-2
+  1. flutter pub add cloud_firestore
+  2. Streambuilder로 데이터 읽어오기
+  3. 데이터 추가하기(snapshot.data!.docs.length > 데이터의 개수)
+  -> !를 통해서 null이 아님을 명시
+  4.  .where, .limit, .orderby, .limitToLast 등으로 데이터 수정하기(쿼리, 필요시) >> rankpoint로 orderby시키면 될듯?
+
+4. 가로모드 고정
+  1. SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+  
+  main.dart에 아래 코드 넣고, import로 기본 모듈 불러오기 import 'package:flutter/services.dart'
+
+5. Oauth
+  kakao, google, naver, apple 등의 로그인을 사용할 수 있음
+  1. flutter pub add firebase_auth 를 yaml에 추가
+  2. import 'package:firebase_auth/firebase_auth.dart'; 를 추가
+  3. Fireabse 세팅시 Android / IOS 각 플랫폼에 맞는 파일을 반드시 앱에 넣고 있어야 한다. Firebase 구성 파일인데, 구글 로그인을 활성화하면 구성 파일이 변경된 것이기에 새로운 구성파일로 변경해주어야 한다는 내용
+  4. flutter pub add google_sign_in << 구글용
+  5. Future<void> signInWithGoogle(BuildContext context) async {
+    GoogleSignIn _googleSignIn = GoogleSignIn();
+    GoogleSignInAccount? _account = await _googleSignIn.signIn();
+  }
+  추가하기
+
+우선 구글로그인부터 구현할 예정
+6. SHA 인증하기 (디버그, 릴리즈, 스토어 각각 다르고, 스토어에 낼 거면 스토어용 따로 필요함.) , firebase에 등록하기
+
+  ** SHA1 만 있어도 되지만 SHA256만 있으면 안 됨.
+  ** 혹시나 자바 버전에러뜨면
+  android -> gradle.properties에 아래 내용 추가
+  org.gradle.java.home=C:/Program Files/Java/jdk-17
+
+  1. 발급받고 project > Android > app에 있는 json파일 변경
+  2. ios는 아래 경로로 이동하면 plist 파일이 있는데 이 부분도 새로 다운받은 파일로 교체
+  3. ios > Runner > Info.plist에 들어가서, 
+      <key>CFBundleURLTypes</key>
+        <array>
+            <dict>
+                <key>CFBundleTypeRole</key>
+                <string>Editor</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                  <string>{REVERSED_CLIENT_ID}</string>
+                </array>
+            </dict>
+        </array>
+  아래 내용 추가. REVERSED_CLIENT_ID는 다운로드 받은 GoogleService-Info.plist 파일에 나와있으니 해당 ID를 넣어주면 된다.
+   >>>> 다운로드 파일에 있음
+  	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.966700247743-bdi7jtm301n5irknajgt8s9jjk2svg7l</string>
+
+
+  4. firebase에 정보를 넘겨야 한다.
+        Future<void> signInWithGoogle(BuildContext context) async {
+          GoogleSignIn _googleSignIn = GoogleSignIn();
+          GoogleSignInAccount? _account = await _googleSignIn.signIn();
+          if (_account != null) {
+            GoogleSignInAuthentication _authentication =
+                await _account.authentication;
+            OAuthCredential _googleCredential = GoogleAuthProvider.credential(
+              idToken: _authentication.idToken,
+              accessToken: _authentication.accessToken,
+            );
+            UserCredential _credential =
+                await _firebaseAuth.signInWithCredential(_googleCredential);
+            if (_credential.user != null) {
+              user = _credential.user;
+              logger.e(user);
+            }
+          }
+      }
+  이 코드 응용해서 사용하면 됨
+  5. import 'package:google_sign_in/google_sign_in.dart'; 추가
+  6. + logger 추가하기
+  
+7. 뒤로가기버튼 없애기 :
+  1. leading: null
+  2. onPressed: () {
+      Navigator.maybePop(context);
+      // 또는 Navigator.of(context).maybePop();
+    },
+
+8. 실시간 채팅 등을 위해 http, realtime database를 사용함
+  1. flutter pub add http
+  2. import 'package:http/http.dart' as http;
+  3. 나머지는 코드참고
+  
+9. 각각의 대기방 구현하기
+  1. 각각의 대기방을 위한 페이지를 만들어야 함
+  MaterialApp(
+    title: 'My Game',
+    initialRoute: '/',
+    onGenerateRoute: (settings) {
+      // 경로 이름 분석
+      final Uri uri = Uri.parse(settings.name!);
+      final String gameRoute = uri.path.replaceFirst('/', '');
+
+      // 경로에 따라 적절한 위젯 반환
+      if (gameRoute == '') {
+        return MaterialPageRoute(builder: (context) => const Loginpage());
+      } else {
+        return MaterialPageRoute(builder: (context) => const Waiting());
+      }
+    },
+    theme: ThemeData(
+      primarySwatch: Colors.blue,
+    ),
+  );
+
+  이제 앱에서 경로를 사용할 때는 다음과 같이 할 수 있습니다:
+  Navigator.pushNamed(context, '/$selectedGame');
+  이렇게 하면 '$selectedGame' 부분이 동적으로 처리
+
+10. 실시간 채팅구현
+  -> 웹소켓.io 사용, flutter pub add web_socket_channel
+ 애플(ios) 에뮬레이터를 구동시켜 시험하는 경우에는 기존처럼 127.0.0.1로 접속하면 된다
+안드로이드 에뮬레이터의 경우에는 IP를 10.0.2.2로 접속하여야 한
+안드로이드 에뮬레이터의 경우에는 또 다른 문제는 http와 https의 문제이다
+구글에서 보안 정책을 강화하면서 API Level 28부터 보안 정책이 강화되었다
+이를 해결하기 위해
+android\app\src\main\AndroidManefest.xml에 내용을 추가하였다
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <application
+        android:usesCleartextTraffic="true"
+android:usescleartexttraffic="true"는 http 방식도 접속을 허용하게 해주는 문구이다
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*** 참고
+flutter clean / flutter pub get 쓰면 리셋되니까 참고
+
+추가
