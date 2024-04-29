@@ -4,30 +4,24 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:firebase_database/firebase_database.dart';
 
 class Waiting extends StatefulWidget {
-  const Waiting({super.key});
+  const Waiting({super.key, required this.roomId, required this.nickname});
+  final String roomId;
+  final String nickname;
 
   @override
-  State<Waiting> createState() => _Waiting();
+  State<Waiting> createState() => _WaitingState();
 }
 
-class _Waiting extends State<Waiting> {
+class _WaitingState extends State<Waiting> {
   final Logger logger = Logger();
   late TextEditingController _messageController;
 
   final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
   late io.Socket _socket;
-  final List<String> _messages = [];
+  final _messages = <Map<String, dynamic>>[];
 
   @override
   void initState() {
-    // 소켓 연결이 정상적으로 되었는가? 소켓은 처음에 메인에서 연결한다.
-    _socket = MyServerWidgetState().socket;
-    if (_socket.connected) {
-      logger.i('Socket connected');
-    } else {
-      logger.e('Socket disconnected');
-    }
-
     super.initState();
     _messageController = TextEditingController();
 
@@ -37,59 +31,44 @@ class _Waiting extends State<Waiting> {
 
   void _initializeSocketIO() {
     _socket = io.io(
-        'https://real-app-710f5-default-rtdb.asia-southeast1.firebasedatabase.app/GameRoom-Status/-NwUoUr4qX6lqAZMv8zb.json',
+        'https://real-app-710f5-default-rtdb.asia-southeast1.firebasedatabase.app/GameRoom-Status/${widget.roomId}/messages.json',
         <String, dynamic>{
           'transports': ['websocket'],
           'autoConnect': false,
         });
-    _socket = MyServerWidgetState().socket;
     _socket.connect();
   }
 
   void _listenToFirebaseUpdates() {
     _databaseReference
-        .child('GameRoom-Status/-NwUoUr4qX6lqAZMv8zb/messages')
-        .onValue
+        .child('GameRoom-Status/${widget.roomId}/messages')
+        .onChildAdded
         .listen((event) {
-      final messages = Map<String, dynamic>.from(event.snapshot.value as Map);
-      final messagesList =
-          messages.values.map((m) => m['text'] as String).toList();
-
+      final message = event.snapshot.value as Map<String, dynamic>;
       setState(() {
-        // 메세지는 최대 10개까지만 보여주기
-        _messages.clear();
-        _messages.addAll(messagesList.reversed.take(10));
+        _messages.add(message);
       });
     });
   }
 
-  void _sendMessage(String message) {
-    try {
-      _databaseReference
-          .child('GameRoom-Status/-NwUoUr4qX6lqAZMv8zb/messages/')
-          .push()
-          .set({'text': message});
-
-      // Socket.IO를 통해 새로운 메시지 전송
-      _socket.emit('new_message', message);
-
-      // 메시지가 비어있지 않다면 _messages 리스트의 맨 앞에 추가
-      if (message.isNotEmpty) {
-        setState(() {
-          _messages.insert(0, message);
-        });
-        _messageController.clear();
-      }
-    } catch (e) {
-      logger.e('Firebase | Error: $e');
-    }
+  void _sendmessage(String message) {
+    final newMessage = {
+      'text': message,
+      'sender': widget.nickname,
+    };
+    _databaseReference
+        .child('GameRoom-Status/${widget.roomId}/messages')
+        .push()
+        .set(message);
+    _socket.emit('message', newMessage);
+    _messageController.clear();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chat'),
+        title: const Text('Waiting'),
       ),
       body: Column(
         children: [
@@ -97,27 +76,48 @@ class _Waiting extends State<Waiting> {
             child: ListView.builder(
               itemCount: _messages.length,
               itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(_messages[index]),
+                final message = _messages[index];
+                final user = message['sender'] == widget.nickname;
+                return Align(
+                  alignment:
+                      user ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.all(8.0),
+                    margin: const EdgeInsets.all(4.0),
+                    decoration: BoxDecoration(
+                      color: user ? Colors.blue : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (!user)
+                          Text(
+                            message['sender'] as String,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12.0,
+                            ),
+                          ),
+                        Text(message['text'] as String),
+                      ],
+                    ),
+                  ),
                 );
               },
             ),
           ),
           TextField(
             controller: _messageController,
-            onSubmitted: (value) {
-              _sendMessage(value);
-              logger.e(value); // 메시지 전송 시 텍스트 로깅
-            },
-            decoration: InputDecoration(
-              hintText: 'Type your message',
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.send),
-                onPressed: () {
-                  _sendMessage(_messageController.text);
-                },
-              ),
+            decoration: const InputDecoration(
+              hintText: 'Enter message',
             ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _sendmessage(_messageController.text);
+            },
+            child: const Text('Send'),
           ),
         ],
       ),

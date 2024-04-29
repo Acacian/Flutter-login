@@ -26,6 +26,7 @@ class _Room extends State<Room> {
   List<String> _filteredGameList = [];
   final List<String> _gameList = [];
   String gamepassword = '';
+  String selectedGameId = '';
 
   @override
   void initState() {
@@ -219,7 +220,10 @@ class _Room extends State<Room> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => const waiting.Waiting(),
+              builder: (context) => waiting.Waiting(
+                  roomId: selectedGameId,
+                  nickname: FirebaseAuth.instance.currentUser?.displayName ??
+                      'Anonymous'),
               fullscreenDialog: true,
             ),
           );
@@ -254,7 +258,11 @@ class _Room extends State<Room> {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const waiting.Waiting(),
+                  builder: (context) => waiting.Waiting(
+                      roomId: selectedGameId,
+                      nickname:
+                          FirebaseAuth.instance.currentUser?.displayName ??
+                              'Anonymous'),
                   fullscreenDialog: true,
                 ),
               );
@@ -286,7 +294,6 @@ class _Room extends State<Room> {
 
 // 게임 리스트 데이터
   final user.User? now = const user.User();
-
   Future<void> getGame() async {
     try {
       if (now != null && mounted) {

@@ -250,6 +250,7 @@ class _Make extends State<Make> {
             'ispublic': ispublic,
             'createdTime': DateTime.now().toString(),
             'createdUser': FirebaseAuth.instance.currentUser?.uid,
+            'messages': [],
           },
         ),
       );
@@ -269,6 +270,7 @@ class _Make extends State<Make> {
             'game_password': _privateController.text,
             'createdTime': DateTime.now().toString(),
             'createdUser': FirebaseAuth.instance.currentUser?.uid,
+            'messages': [],
           },
         ),
       );
@@ -313,10 +315,12 @@ class _Make extends State<Make> {
     if (mounted && isCreated == true) {
       Navigator.pushAndRemoveUntil(
           // send game id to waiting.dart
-
           context,
           MaterialPageRoute(
-            builder: (context) => const waiting.Waiting(),
+            builder: (context) => waiting.Waiting(
+                roomId: selectedGameId,
+                nickname: FirebaseAuth.instance.currentUser?.displayName ??
+                    'Anonymous'),
             fullscreenDialog: true,
           ),
           (route) => false);
