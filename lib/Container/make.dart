@@ -172,6 +172,28 @@ class _Make extends State<Make> {
         );
       });
     }
+    //
+    if (int.tryParse(quantity) == 0) {
+      setState(() {
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Error'),
+              content: const Text('유저 수는 본인을 포함한 1명 이상이어야 합니다!'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      });
+    }
     // gamename이 비어있으면 error
     if (gamename.isEmpty) {
       setState(() {

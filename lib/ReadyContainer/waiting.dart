@@ -97,6 +97,15 @@ class _WaitingState extends State<Waiting> {
     }
   }
 
+  @override
+  void dispose() {
+    _databaseReference
+        .child('GameRoom-Status/${widget.roomId}/members/${widget.nickname}')
+        .remove();
+    _socket.disconnect();
+    super.dispose();
+  }
+
   void _sendmessage(String message) {
     final newMessage = {
       'text': message,
@@ -113,10 +122,14 @@ class _WaitingState extends State<Waiting> {
   void _leaveRoom() {
     _databaseReference
         .child('GameRoom-Status/${widget.roomId}/members/${widget.nickname}')
-        .remove();
-    Navigator.of(context).pop();
-    Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (context) => const main.Room()));
+        .remove()
+        .then((_) {
+      Navigator.of(context).pop();
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (context) => const main.Room()));
+    }).catchError((error) {
+      logger.e('Error leaving room: $error');
+    });
   }
 
   @override

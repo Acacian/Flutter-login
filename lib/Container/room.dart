@@ -31,12 +31,6 @@ class _Room extends State<Room> {
   late io.Socket _socket;
   final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
 
-  final storeNickname = FirebaseFirestore.instance
-      .collection('users')
-      .doc(FirebaseAuth.instance.currentUser?.uid)
-      .get()
-      .then((value) => value.data()?['nickname'] as String);
-
   @override
   void initState() {
     super.initState();
@@ -206,31 +200,41 @@ class _Room extends State<Room> {
     );
     final response = await http.get(url);
     final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final storeNickname = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(FirebaseAuth.instance.currentUser?.uid)
+        .get()
+        .then((value) => value.data()?['nickname'] as String);
 
     // 선택된 게임의 id를 가져와서 참가하기
     final selectedGameId = data.keys.elementAt(_selectedGameIndex);
 
     // 최대 인원수가 넘어가면 참가할 수 없음
-    if (data[selectedGameId]['members'].length >=
-            data[selectedGameId]['quantity'] &&
+    if (int.tryParse(data[selectedGameId]?['quantity'] ?? '') != null &&
+        data[selectedGameId]?['members'] is List &&
         mounted) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('인원이 꽉 찼습니다'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('확인'),
-              ),
-            ],
-          );
-        },
-      );
-      return;
+      int quantity = int.parse(data[selectedGameId]['quantity']);
+      List members = data[selectedGameId]['members'];
+
+      if (members.length >= quantity) {
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('인원이 꽉 찼습니다. 새로고침을 하거나, 다른 방에 참가해주세요.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('확인'),
+                ),
+              ],
+            );
+          },
+        );
+        return;
+      }
     }
 
     if (selectedGame.contains('🔒')) {
@@ -281,61 +285,69 @@ class _Room extends State<Room> {
   }
 
   Widget passwordInputDialog(BuildContext context) {
-    return AlertDialog(
-      title: const Text('비밀번호를 입력해주세요'),
-      content: TextField(
-        controller: _gamepassword,
-        decoration: const InputDecoration(
-          labelText: '비밀번호',
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          child: const Text('취소'),
-        ),
-        TextButton(
-          onPressed: () {
-            if (_gamepassword.text == gamepassword) {
-              logger.i('비밀번호가 맞습니다');
-              Navigator.pop(context);
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => waiting.Waiting(
-                      roomId: selectedGameId,
-                      nickname:
-                          FirebaseAuth.instance.currentUser?.displayName ??
-                              storeNickname.toString()),
-                  fullscreenDialog: true,
-                ),
-              );
-            } else {
-              _gamepassword.clear();
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return AlertDialog(
-                    title: const Text('비밀번호가 틀렸습니다'),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: const Text('확인'),
-                      ),
-                    ],
-                  );
+    return FutureBuilder<String>(
+      future: _getStoreNickname(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else {
+          final storeNickname = snapshot.data ?? '';
+          return AlertDialog(
+            title: Text('비밀번호를 입력해주세요 ($storeNickname)'),
+            content: TextField(
+              controller: _gamepassword,
+              decoration: const InputDecoration(
+                labelText: '비밀번호',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
                 },
-              );
-            }
-          },
-          child: const Text('확인'),
-        ),
-      ],
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (_gamepassword.text == gamepassword) {
+                    logger.i('비밀번호가 맞습니다');
+                    Navigator.pop(context);
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => waiting.Waiting(
+                          roomId: selectedGameId,
+                          nickname:
+                              FirebaseAuth.instance.currentUser?.displayName ??
+                                  storeNickname,
+                        ),
+                        fullscreenDialog: true,
+                      ),
+                    );
+                  }
+                },
+                child: const Text('확인'),
+              ),
+            ],
+          );
+        }
+      },
     );
+  }
+
+  Future<String> _getStoreNickname() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUser.uid)
+          .get();
+      final nickname = userDoc.data()?['nickname'] as String?;
+      return nickname ?? '';
+    }
+    return '';
   }
 
 // 게임 리스트 데이터
@@ -351,22 +363,14 @@ class _Room extends State<Room> {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         _gameList.clear();
         data.forEach((key, value) {
-          // public이면 그대로 넣고, 아니면 자물쇠 그림을 추가함
-          if (value['ispublic'] == 'Public') {
-            _gameList.add(value['game_name'] +
-                    '        ' +
-                    value[('members').length]?.length ??
-                0 + '/' + value['quantity'] ??
-                0);
-          } else {
-            _gameList.add(value['game_name'] +
-                    '🔒' +
-                    '        ' +
-                    value[('members').length] +
-                    '/' +
-                    value['quantity'] ??
-                0);
-          }
+          final gameName = value['game_name'];
+          final isPublic = value['ispublic'] == 'Public';
+          final members = value['members']?.length ?? 0;
+          final quantity = value['quantity'] ?? '';
+
+          _gameList.add(
+            '$gameName${isPublic ? '' : '🔒'}        $members/$quantity',
+          );
         });
         // 필터링된 게임 리스트 업데이트
         _filteredGameList = List.from(_gameList);
