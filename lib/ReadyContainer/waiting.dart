@@ -1,124 +1,125 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:logger/logger.dart';
-import 'package:shelf/shelf.dart' as shelf;
-import 'package:shelf_router/shelf_router.dart' as shelf_router;
-import 'package:shelf/shelf_io.dart' as shelf_io;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:firebase_database/firebase_database.dart';
-import 'package:shelf_web_socket/shelf_web_socket.dart' as shelf_web_socket;
-// import 'package:web_socket_channel/web_socket_channel.dart';
-
-Future<void> running() async {
-  final logger = Logger();
-  final webSocketHandler = shelf_web_socket.webSocketHandler((channel) {
-    channel.stream.listen(
-      (message) {
-        logger.i('Received message: $message');
-      },
-      onError: (error) {
-        logger.e('WebSocket error: $error');
-      },
-    );
-  });
-
-  // WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp(
-  //   options: DefaultFirebaseOptions.currentPlatform,
-  // );
-
-  final router = shelf_router.Router();
-  router
-    ..get('/', _handleLoginRequest)
-    ..get('/firebase', _handleFirebaseRequest)
-    ..get('/socket.io/', webSocketHandler);
-
-  final handler = const shelf.Pipeline()
-      .addMiddleware(shelf.logRequests())
-      .addHandler(router.call);
-  final server = await shelf_io.serve(handler, 'localhost', 3000);
-
-  if (server.address.isLoopback) {
-    logger.i('Server running at http://${server.address.host}:${server.port}');
-  } else {
-    logger.e(
-        'Server not running at http://${server.address.host}:${server.port}');
-  }
-
-  // Socket.IO 클라이언트 연결
-  try {
-    _connectToServer();
-  } catch (e) {
-    logger.e('Socket.IO 클라이언트 연결 실패: $e');
-  }
-}
-
-Future<shelf.Response> _handleLoginRequest(shelf.Request request) async {
-  return shelf.Response.ok(
-    'Welcome to the login page!',
-    headers: {'content-type': 'text/plain'},
-  );
-}
-
-Future<shelf.Response> _handleFirebaseRequest(shelf.Request request) async {
-  final databaseRef = FirebaseDatabase.instance.ref();
-  final snapshot = await databaseRef.child('data').get();
-  if (snapshot.exists) {
-    return shelf.Response.ok(snapshot.value.toString());
-  } else {
-    return shelf.Response.internalServerError(
-        body: 'Error accessing Firebase Realtime Database');
-  }
-}
-
-void _connectToServer() {
-  final logger = Logger();
-  final socket = io.io('http://localhost:3000');
-  socket.connect();
-
-  socket.onConnect((_) {
-    logger.i('socket_connect');
-    if (socket.connected) {
-      logger.i('WebSocket connection established');
-    } else {
-      logger.e('WebSocket connection failed');
-    }
-    socket.emit('msg', 'test');
-  });
-  socket.on('event', (data) => logger.i(data));
-  socket.onDisconnect((_) => logger.e('disconnect'));
-}
 
 class Waiting extends StatefulWidget {
   const Waiting({super.key});
 
   @override
-  State<Waiting> createState() => _WaitingState();
+  State<Waiting> createState() => _Waiting();
 }
 
-class _WaitingState extends State<Waiting> {
-  final logger = Logger();
-  late io.Socket socket;
+class _Waiting extends State<Waiting> {
+  final Logger logger = Logger();
+  late TextEditingController _messageController;
+
+  final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
+  late io.Socket _socket;
+  final List<String> _messages = [];
 
   @override
   void initState() {
+    // 소켓 연결이 정상적으로 되었는가? 소켓은 처음에 메인에서 연결한다.
+    _socket = MyServerWidgetState().socket;
+    if (_socket.connected) {
+      logger.i('Socket connected');
+    } else {
+      logger.e('Socket disconnected');
+    }
+
     super.initState();
-    _connectToServer();
+    _messageController = TextEditingController();
+
+    _initializeSocketIO();
+    _listenToFirebaseUpdates();
+  }
+
+  void _initializeSocketIO() {
+    _socket = io.io(
+        'https://real-app-710f5-default-rtdb.asia-southeast1.firebasedatabase.app/GameRoom-Status/-NwUoUr4qX6lqAZMv8zb.json',
+        <String, dynamic>{
+          'transports': ['websocket'],
+          'autoConnect': false,
+        });
+    _socket = MyServerWidgetState().socket;
+    _socket.connect();
+  }
+
+  void _listenToFirebaseUpdates() {
+    _databaseReference
+        .child('GameRoom-Status/-NwUoUr4qX6lqAZMv8zb/messages')
+        .onValue
+        .listen((event) {
+      final messages = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final messagesList =
+          messages.values.map((m) => m['text'] as String).toList();
+
+      setState(() {
+        // 메세지는 최대 10개까지만 보여주기
+        _messages.clear();
+        _messages.addAll(messagesList.reversed.take(10));
+      });
+    });
+  }
+
+  void _sendMessage(String message) {
+    try {
+      _databaseReference
+          .child('GameRoom-Status/-NwUoUr4qX6lqAZMv8zb/messages/')
+          .push()
+          .set({'text': message});
+
+      // Socket.IO를 통해 새로운 메시지 전송
+      _socket.emit('new_message', message);
+
+      // 메시지가 비어있지 않다면 _messages 리스트의 맨 앞에 추가
+      if (message.isNotEmpty) {
+        setState(() {
+          _messages.insert(0, message);
+        });
+        _messageController.clear();
+      }
+    } catch (e) {
+      logger.e('Firebase | Error: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Socket.IO Test'),
+        title: const Text('Chat'),
       ),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            socket.emit('msg', 'test');
-          },
-          child: const Text('Send Message'),
-        ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(_messages[index]),
+                );
+              },
+            ),
+          ),
+          TextField(
+            controller: _messageController,
+            onSubmitted: (value) {
+              _sendMessage(value);
+              logger.e(value); // 메시지 전송 시 텍스트 로깅
+            },
+            decoration: InputDecoration(
+              hintText: 'Type your message',
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.send),
+                onPressed: () {
+                  _sendMessage(_messageController.text);
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
