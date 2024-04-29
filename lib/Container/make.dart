@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logger/logger.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'room.dart' as room;
 import 'package:http/http.dart' as http;
 import '../ReadyContainer/waiting.dart' as waiting;
@@ -28,6 +29,12 @@ class _Make extends State<Make> {
     _publicController.text = 'Public';
     _privateController = TextEditingController();
   }
+
+  final storeNickname = FirebaseFirestore.instance
+      .collection('users')
+      .doc(FirebaseAuth.instance.currentUser?.uid)
+      .get()
+      .then((value) => value.data()?['nickname'] as String);
 
   Logger logger = Logger();
   List<bool> isSelected = [true, false];
@@ -251,6 +258,7 @@ class _Make extends State<Make> {
             'createdTime': DateTime.now().toString(),
             'createdUser': FirebaseAuth.instance.currentUser?.uid,
             'messages': <Map<String, dynamic>>[],
+            'members': <String>[],
           },
         ),
       );
@@ -271,6 +279,7 @@ class _Make extends State<Make> {
             'createdTime': DateTime.now().toString(),
             'createdUser': FirebaseAuth.instance.currentUser?.uid,
             'messages': <Map<String, dynamic>>[],
+            'members': <String>[],
           },
         ),
       );
@@ -320,7 +329,7 @@ class _Make extends State<Make> {
             builder: (context) => waiting.Waiting(
                 roomId: selectedGameId,
                 nickname: FirebaseAuth.instance.currentUser?.displayName ??
-                    'Anonymous'),
+                    storeNickname.toString()),
             fullscreenDialog: true,
           ),
           (route) => false);

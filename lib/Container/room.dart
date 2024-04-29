@@ -10,6 +10,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import "auth.dart";
+import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'package:firebase_database/firebase_database.dart';
 
 class Room extends StatefulWidget {
   const Room({super.key});
@@ -19,7 +21,6 @@ class Room extends StatefulWidget {
 }
 
 class _Room extends State<Room> {
-  // 검색어 입력을 위한 컨트롤러
   final _searchController = TextEditingController();
   final _gamepassword = TextEditingController();
   int _selectedGameIndex = -1;
@@ -27,17 +28,42 @@ class _Room extends State<Room> {
   final List<String> _gameList = [];
   String gamepassword = '';
   String selectedGameId = '';
+  late io.Socket _socket;
+  final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
+
+  final storeNickname = FirebaseFirestore.instance
+      .collection('users')
+      .doc(FirebaseAuth.instance.currentUser?.uid)
+      .get()
+      .then((value) => value.data()?['nickname'] as String);
 
   @override
   void initState() {
     super.initState();
     _filteredGameList = List.from(_gameList);
     _searchController.addListener(() {
-      // 검색어 입력 시 필터링
       _filterGameList(_searchController.text);
     });
-
     getGame();
+
+    _initializeSocketIO();
+    _listenToFirebaseUpdates();
+  }
+
+  void _initializeSocketIO() {
+    _socket = io.io(
+        'https://real-app-710f5-default-rtdb.asia-southeast1.firebasedatabase.app/GameRoom-Status.json',
+        <String, dynamic>{
+          'transports': ['websocket'],
+          'autoConnect': false,
+        });
+    _socket.connect();
+  }
+
+  void _listenToFirebaseUpdates() {
+    _databaseReference.child('GameRoom-Status').onChildChanged.listen((event) {
+      getGame();
+    });
   }
 
   Logger logger = Logger();
@@ -52,10 +78,9 @@ class _Room extends State<Room> {
             iconSize: 120,
             icon: Image.asset('images/Sans.png'), // 임의의 캐릭터 모양 아이콘 사용
             onPressed: () {
-              Navigator.pushAndRemoveUntil(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const user.User()),
-                (route) => false,
               );
               logger.i('내 정보창 이동');
             },
@@ -76,10 +101,9 @@ class _Room extends State<Room> {
             icon: Image.asset('images/logout.png'),
             onPressed: () {
               signsOut();
-              Navigator.pushAndRemoveUntil(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const Loginpage()),
-                (route) => false,
               );
               Navigator.maybePop(context);
             },
@@ -140,10 +164,9 @@ class _Room extends State<Room> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushAndRemoveUntil(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const make.Make()),
-                  (route) => false,
                 );
                 logger.i('Create Game 버튼 클릭');
               },
@@ -187,6 +210,29 @@ class _Room extends State<Room> {
     // 선택된 게임의 id를 가져와서 참가하기
     final selectedGameId = data.keys.elementAt(_selectedGameIndex);
 
+    // 최대 인원수가 넘어가면 참가할 수 없음
+    if (data[selectedGameId]['members'].length >=
+            data[selectedGameId]['quantity'] &&
+        mounted) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('인원이 꽉 찼습니다'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('확인'),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
     if (selectedGame.contains('🔒')) {
       data.forEach((key, value) {
         // to find filtered game's id
@@ -223,7 +269,7 @@ class _Room extends State<Room> {
               builder: (context) => waiting.Waiting(
                   roomId: selectedGameId,
                   nickname: FirebaseAuth.instance.currentUser?.displayName ??
-                      'Anonymous'),
+                      storeNickname.toString()),
               fullscreenDialog: true,
             ),
           );
@@ -262,7 +308,7 @@ class _Room extends State<Room> {
                       roomId: selectedGameId,
                       nickname:
                           FirebaseAuth.instance.currentUser?.displayName ??
-                              'Anonymous'),
+                              storeNickname.toString()),
                   fullscreenDialog: true,
                 ),
               );
@@ -307,9 +353,18 @@ class _Room extends State<Room> {
         data.forEach((key, value) {
           // public이면 그대로 넣고, 아니면 자물쇠 그림을 추가함
           if (value['ispublic'] == 'Public') {
-            _gameList.add(value['game_name']);
+            _gameList.add(value['game_name'] +
+                '        ' +
+                value[('members').length] +
+                '/' +
+                value['quantity'].toString());
           } else {
-            _gameList.add(value['game_name'] + '🔒');
+            _gameList.add(value['game_name'] +
+                '🔒' +
+                '        ' +
+                value[('members').length] +
+                '/' +
+                value['quantity'].toString());
           }
         });
         // 필터링된 게임 리스트 업데이트
