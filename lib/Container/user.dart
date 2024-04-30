@@ -83,13 +83,12 @@ class _User extends State<User> {
             // 뒤로가기 버튼
             ElevatedButton(
               onPressed: () {
-                Navigator.pushAndRemoveUntil(
+                Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const room.Room(),
                     fullscreenDialog: true,
                   ),
-                  (route) => false,
                 );
               },
               child: const Text('Back to waiting room'),

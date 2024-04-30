@@ -20,7 +20,6 @@ class _WaitingState extends State<Waiting> {
 
   final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
   late io.Socket _socket;
-  final _messages = <Map<String, dynamic>>[];
   final _members = <String>[];
 
   @override
@@ -29,7 +28,9 @@ class _WaitingState extends State<Waiting> {
     _messageController = TextEditingController();
 
     _initializeSocketIO();
-    _listenToFirebaseUpdates();
+    membersjoin();
+    _getoutofroom();
+    _chating();
   }
 
   void _initializeSocketIO() {
@@ -42,7 +43,57 @@ class _WaitingState extends State<Waiting> {
     _socket.connect();
   }
 
-  void _listenToFirebaseUpdates() {
+  Future<void> _sendMessage(String text) async {
+    if (text.isNotEmpty) {
+      final newMessage = {
+        'sender': widget.nickname,
+        'text': text,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      };
+      try {
+        await _databaseReference
+            .child('GameRoom-Status/${widget.roomId}/messages')
+            .push()
+            .set(newMessage);
+        _messageController.clear();
+        _socket.emit('message', <String, dynamic>{
+          'roomId': widget.roomId,
+          'message': newMessage,
+        });
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to send message: $e'),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Stream<List<Map<String, dynamic>>> _chating() {
+    return _databaseReference
+        .child('GameRoom-Status/${widget.roomId}/messages')
+        .onValue
+        .map((event) {
+      final messages = <Map<String, dynamic>>[];
+      final data = event.snapshot.value;
+      if (data != null && data is Map<dynamic, dynamic>) {
+        data.forEach((key, value) {
+          if (value is Map<dynamic, dynamic>) {
+            final message = Map<String, dynamic>.from(value);
+            messages.add(message);
+          }
+        });
+      }
+
+      logger.i('messages: $messages');
+      return messages;
+    });
+  }
+
+  void membersjoin() {
     // USER JOINED
     _databaseReference
         .child('GameRoom-Status/${widget.roomId}/members')
@@ -53,48 +104,6 @@ class _WaitingState extends State<Waiting> {
         _members.add(member);
       });
     });
-
-    // get out of the room if the number of users exceeds the limit
-    _databaseReference
-        .child('GameRoom-Status/${widget.roomId}/quantity')
-        .onValue
-        .listen((event) {
-      final quantity = event.snapshot.value as int;
-      if (_members.length > quantity) {
-        _databaseReference
-            .child(
-                'GameRoom-Status/${widget.roomId}/members/${widget.nickname}')
-            .remove();
-        Navigator.of(context).pop();
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (context) => const main.Room()));
-      }
-    });
-
-    // REALTIME MESSAGE
-    _databaseReference
-        .child('GameRoom-Status/${widget.roomId}/messages')
-        .onChildAdded
-        .listen((event) {
-      final message = event.snapshot.value as Map<String, dynamic>;
-      setState(() {
-        _messages.add(message);
-      });
-    });
-
-    if (_messages.length > 10) {
-      _databaseReference
-          .child('GameRoom-Status/${widget.roomId}/messages')
-          .onChildRemoved
-          .listen((event) {
-        Map<String, dynamic> message = _messages.reduce((prev, current) {
-          return prev['timestamp'] < current['timestamp'] ? prev : current;
-        });
-        setState(() {
-          _messages.remove(message);
-        });
-      });
-    }
   }
 
   @override
@@ -106,29 +115,55 @@ class _WaitingState extends State<Waiting> {
     super.dispose();
   }
 
-  void _sendmessage(String message) {
-    final newMessage = {
-      'text': message,
-      'sender': widget.nickname,
-    };
-    _databaseReference
-        .child('GameRoom-Status/${widget.roomId}/messages')
-        .push()
-        .set(newMessage);
-    _socket.emit('message', newMessage);
-    _messageController.clear();
-  }
-
-  void _leaveRoom() {
-    _databaseReference
+  void _leaveRoom() async {
+    await _databaseReference
         .child('GameRoom-Status/${widget.roomId}/members/${widget.nickname}')
         .remove()
         .then((_) {
       Navigator.of(context).pop();
-      Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const main.Room()));
     }).catchError((error) {
       logger.e('Error leaving room: $error');
+    });
+  }
+
+  void _getoutofroom() {
+    // get out of the room if the number of users exceeds the limit
+    _databaseReference
+        .child('GameRoom-Status/${widget.roomId}/quantity')
+        .onValue
+        .listen((event) {
+      final quantity = event.snapshot.value as int;
+      if (_members.length > quantity) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('방 용량 초과'),
+              content: const Text('방 용량이 초과되어 퇴장해야 합니다.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    // 사용자 데이터베이스에서 삭제
+                    _databaseReference
+                        .child(
+                            'GameRoom-Status/${widget.roomId}/members/${widget.nickname}')
+                        .remove()
+                        .then((_) {
+                      // 사용자 퇴장 처리
+                      Navigator.of(context).pop();
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const main.Room()));
+                    });
+                  },
+                  child: const Text('Exit'),
+                ),
+              ],
+            );
+          },
+        );
+      }
     });
   }
 
@@ -136,7 +171,7 @@ class _WaitingState extends State<Waiting> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Waiting'),
+        title: const Text('Waiting Room'),
         actions: [
           ElevatedButton(
             onPressed: _leaveRoom,
@@ -147,37 +182,66 @@ class _WaitingState extends State<Waiting> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                final correntUser = message['sender'] == widget.nickname;
-                return Align(
-                  alignment: correntUser
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    padding: const EdgeInsets.all(8.0),
-                    margin: const EdgeInsets.all(4.0),
-                    decoration: BoxDecoration(
-                      color: correntUser ? Colors.blue : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (!correntUser)
-                          Text(
-                            message['sender'] as String,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12.0,
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _chating(),
+              builder: (context, snapshot) {
+                switch (snapshot.connectionState) {
+                  case ConnectionState.waiting:
+                    return const Center(child: CircularProgressIndicator());
+                  case ConnectionState.active:
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(child: Text('No data available'));
+                    }
+                  case ConnectionState.none:
+                    return const Center(child: Text('No data available'));
+                  case ConnectionState.done:
+                    return const Center(child: Text('No data available'));
+                }
+                final messages = snapshot.data!;
+                return ListView.builder(
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    final sender = message['sender'] as String;
+                    final isSentByCurrentUser = sender == widget.nickname;
+                    return Align(
+                      alignment: isSentByCurrentUser
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 4.0, horizontal: 8.0),
+                        child: Column(
+                          crossAxisAlignment: isSentByCurrentUser
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
+                          children: [
+                            if (!isSentByCurrentUser)
+                              Text(
+                                sender,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.0,
+                                ),
+                              ),
+                            Container(
+                              padding: const EdgeInsets.all(8.0),
+                              decoration: BoxDecoration(
+                                color: isSentByCurrentUser
+                                    ? Colors.blue
+                                    : Colors.grey[300],
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child: Text(message['text'] as String),
                             ),
-                          ),
-                        Text(message['text'] as String),
-                      ],
-                    ),
-                  ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -188,9 +252,11 @@ class _WaitingState extends State<Waiting> {
               hintText: 'Enter message',
             ),
           ),
+          const SizedBox(height: 40.0),
           ElevatedButton(
             onPressed: () {
-              _sendmessage(_messageController.text);
+              _sendMessage(_messageController.text);
+              _messageController.clear();
             },
             child: const Text('Send'),
           ),

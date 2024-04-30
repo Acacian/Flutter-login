@@ -72,7 +72,7 @@ class _Room extends State<Room> {
             iconSize: 120,
             icon: Image.asset('images/Sans.png'), // 임의의 캐릭터 모양 아이콘 사용
             onPressed: () {
-              Navigator.pushReplacement(
+              Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const user.User()),
               );
@@ -118,8 +118,8 @@ class _Room extends State<Room> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                // 검색 버튼을 너무 자주 누르면 안 되니까 1초 딜레이를 줌
-                Future.delayed(const Duration(seconds: 1), () {});
+                // 검색 버튼을 너무 자주 누르면 안 되니까 0.5초 딜레이를 줌
+                Future.delayed(const Duration(milliseconds: 5), () {});
                 setState(() {
                   _filterGameList(_searchController.text);
                 });
@@ -158,7 +158,7 @@ class _Room extends State<Room> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushReplacement(
+                Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const make.Make()),
                 );
@@ -267,7 +267,7 @@ class _Room extends State<Room> {
     } else {
       try {
         if (mounted) {
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => waiting.Waiting(
@@ -314,7 +314,7 @@ class _Room extends State<Room> {
                   if (_gamepassword.text == gamepassword) {
                     logger.i('비밀번호가 맞습니다');
                     Navigator.pop(context);
-                    Navigator.pushReplacement(
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => waiting.Waiting(
@@ -325,6 +325,24 @@ class _Room extends State<Room> {
                         ),
                         fullscreenDialog: true,
                       ),
+                    );
+                  } else {
+                    logger.e('비밀번호가 틀렸습니다');
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return AlertDialog(
+                          title: const Text('비밀번호가 틀렸습니다. 다시 입력해주세요.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              child: const Text('확인'),
+                            ),
+                          ],
+                        );
+                      },
                     );
                   }
                 },
@@ -363,7 +381,7 @@ class _Room extends State<Room> {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         _gameList.clear();
         data.forEach((key, value) {
-          final gameName = value['game_name'];
+          final gameName = value['game_name'].toString();
           final isPublic = value['ispublic'] == 'Public';
           final members = value['members']?.length ?? 0;
           final quantity = value['quantity'] ?? '';

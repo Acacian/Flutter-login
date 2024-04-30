@@ -126,13 +126,12 @@ class _Make extends State<Make> {
                   const SizedBox(width: 16.0),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.pushAndRemoveUntil(
+                      Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const room.Room(),
                           fullscreenDialog: true,
                         ),
-                        (route) => false,
                       );
                     },
                     child: const Text('Back to Main'),
@@ -344,7 +343,7 @@ class _Make extends State<Make> {
     );
 
     if (mounted && isCreated == true) {
-      Navigator.pushAndRemoveUntil(
+      Navigator.push(
           // send game id to waiting.dart
           context,
           MaterialPageRoute(
@@ -353,8 +352,7 @@ class _Make extends State<Make> {
                 nickname: FirebaseAuth.instance.currentUser?.displayName ??
                     storeNickname.toString()),
             fullscreenDialog: true,
-          ),
-          (route) => false);
+          ));
     }
   }
 }
