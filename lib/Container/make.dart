@@ -31,11 +31,16 @@ class _Make extends State<Make> {
   }
 
   final storeNickname = FirebaseFirestore.instance
-      .collection('users')
+      .collection('Users')
       .doc(FirebaseAuth.instance.currentUser?.uid)
       .get()
       .then((value) => value.data()?['nickname'] as String);
 
+  final yourRankpoint = FirebaseFirestore.instance
+      .collection('Users')
+      .doc(FirebaseAuth.instance.currentUser?.uid)
+      .get()
+      .then((value) => value.data()?['rankpoint'] as int);
   Logger logger = Logger();
   List<bool> isSelected = [true, false];
 
@@ -343,16 +348,25 @@ class _Make extends State<Make> {
     );
 
     if (mounted && isCreated == true) {
-      Navigator.push(
-          // send game id to waiting.dart
-          context,
-          MaterialPageRoute(
-            builder: (context) => waiting.Waiting(
+      try {
+        final rankpoint = await yourRankpoint;
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => waiting.Waiting(
                 roomId: selectedGameId,
                 nickname: FirebaseAuth.instance.currentUser?.displayName ??
-                    storeNickname.toString()),
-            fullscreenDialog: true,
-          ));
+                    storeNickname.toString(),
+                rankpoint: rankpoint,
+              ),
+              fullscreenDialog: true,
+            ),
+          );
+        }
+      } catch (error) {
+        logger.e('제작한 방으로의 이동이 실패하였습니다! $error');
+      }
     }
   }
 }

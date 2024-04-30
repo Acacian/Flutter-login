@@ -70,7 +70,8 @@ class _Room extends State<Room> {
         actions: [
           IconButton(
             iconSize: 120,
-            icon: Image.asset('images/Sans.png'), // 임의의 캐릭터 모양 아이콘 사용
+            icon: Image.asset(
+                'assets/backendimages/Sans.png'), // 임의의 캐릭터 모양 아이콘 사용
             onPressed: () {
               Navigator.push(
                 context,
@@ -83,7 +84,7 @@ class _Room extends State<Room> {
           const SizedBox(width: 25),
           IconButton(
             iconSize: 120,
-            icon: Image.asset('images/rerun.png'),
+            icon: Image.asset('assets/backendimages/rerun.png'),
             onPressed: () {
               getGame();
               logger.i('새로고침');
@@ -92,7 +93,7 @@ class _Room extends State<Room> {
           const SizedBox(width: 25),
           IconButton(
             iconSize: 120,
-            icon: Image.asset('images/logout.png'),
+            icon: Image.asset('assets/backendimages/logout.png'),
             onPressed: () {
               signsOut();
               Navigator.pushReplacement(
@@ -206,6 +207,12 @@ class _Room extends State<Room> {
         .get()
         .then((value) => value.data()?['nickname'] as String);
 
+    final yourRankpoint = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(FirebaseAuth.instance.currentUser?.uid)
+        .get()
+        .then((value) => value.data()?['rankpoint'] as int);
+
     // 선택된 게임의 id를 가져와서 참가하기
     final selectedGameId = data.keys.elementAt(_selectedGameIndex);
 
@@ -271,9 +278,11 @@ class _Room extends State<Room> {
             context,
             MaterialPageRoute(
               builder: (context) => waiting.Waiting(
-                  roomId: selectedGameId,
-                  nickname: FirebaseAuth.instance.currentUser?.displayName ??
-                      storeNickname.toString()),
+                roomId: selectedGameId,
+                nickname: FirebaseAuth.instance.currentUser?.displayName ??
+                    storeNickname.toString(),
+                rankpoint: yourRankpoint.toInt(),
+              ),
               fullscreenDialog: true,
             ),
           );
@@ -294,6 +303,7 @@ class _Room extends State<Room> {
           return Center(child: Text('Error: ${snapshot.error}'));
         } else {
           final storeNickname = snapshot.data ?? '';
+          final yourRankpoint = snapshot.data ?? '';
           return AlertDialog(
             title: Text('비밀번호를 입력해주세요 ($storeNickname)'),
             content: TextField(
@@ -322,6 +332,7 @@ class _Room extends State<Room> {
                           nickname:
                               FirebaseAuth.instance.currentUser?.displayName ??
                                   storeNickname,
+                          rankpoint: int.parse(yourRankpoint),
                         ),
                         fullscreenDialog: true,
                       ),

@@ -6,9 +6,14 @@ import 'package:firebase_database/firebase_database.dart';
 import '../Container/room.dart' as main;
 
 class Waiting extends StatefulWidget {
-  const Waiting({super.key, required this.roomId, required this.nickname});
+  const Waiting(
+      {super.key,
+      required this.roomId,
+      required this.nickname,
+      required this.rankpoint});
   final String roomId;
   final String nickname;
+  final int rankpoint;
 
   @override
   State<Waiting> createState() => _WaitingState();
@@ -20,7 +25,6 @@ class _WaitingState extends State<Waiting> {
 
   final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
   late io.Socket _socket;
-  final _members = <String>[];
 
   @override
   void initState() {
@@ -29,6 +33,7 @@ class _WaitingState extends State<Waiting> {
 
     _initializeSocketIO();
     membersjoin();
+    memberslist();
     _getoutofroom();
     _chating();
   }
@@ -87,22 +92,55 @@ class _WaitingState extends State<Waiting> {
           }
         });
       }
-
       logger.i('messages: $messages');
       return messages;
     });
   }
 
-  void membersjoin() {
-    // USER JOINED
-    _databaseReference
+  void membersjoin() async {
+    if (widget.nickname.isNotEmpty) {
+      final newUser = {
+        'Username': widget.nickname,
+        'rankpoint': widget.rankpoint,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      };
+      try {
+        final newMemberRef = _databaseReference
+            .child('GameRoom-Status/${widget.roomId}/members')
+            .push();
+        await newMemberRef.set(newUser);
+        _socket.emit('member', <String, dynamic>{
+          'roomId': widget.roomId,
+          'member': newUser,
+        });
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('방에 입장할 수 없습니다 : $e'),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Stream<Map<String, Map<String, dynamic>>> memberslist() {
+    return _databaseReference
         .child('GameRoom-Status/${widget.roomId}/members')
-        .onChildAdded
-        .listen((event) {
-      final member = event.snapshot.key as String;
-      setState(() {
-        _members.add(member);
-      });
+        .onValue
+        .map((event) {
+      final members = <String, Map<String, dynamic>>{};
+      final data = event.snapshot.value;
+      if (data != null && data is Map<dynamic, dynamic>) {
+        data.forEach((key, value) {
+          if (value is Map<dynamic, dynamic>) {
+            members[key] = Map<String, dynamic>.from(value);
+          }
+        });
+      }
+      logger.i('members: $members');
+      return members;
     });
   }
 
@@ -126,44 +164,64 @@ class _WaitingState extends State<Waiting> {
     });
   }
 
-  void _getoutofroom() {
-    // get out of the room if the number of users exceeds the limit
-    _databaseReference
-        .child('GameRoom-Status/${widget.roomId}/quantity')
+  Stream<Map<String, Map<String, dynamic>>> _membersStream() {
+    return _databaseReference
+        .child('GameRoom-Status/${widget.roomId}/members')
         .onValue
-        .listen((event) {
-      final quantity = event.snapshot.value as int;
-      if (_members.length > quantity) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('방 용량 초과'),
-              content: const Text('방 용량이 초과되어 퇴장해야 합니다.'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    // 사용자 데이터베이스에서 삭제
-                    _databaseReference
-                        .child(
-                            'GameRoom-Status/${widget.roomId}/members/${widget.nickname}')
-                        .remove()
-                        .then((_) {
-                      // 사용자 퇴장 처리
-                      Navigator.of(context).pop();
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const main.Room()));
-                    });
-                  },
-                  child: const Text('Exit'),
-                ),
-              ],
-            );
-          },
-        );
+        .map((event) {
+      final members = <String, Map<String, dynamic>>{};
+      final data = event.snapshot.value;
+      if (data != null && data is Map<dynamic, dynamic>) {
+        data.forEach((key, value) {
+          if (value is Map<dynamic, dynamic>) {
+            members[key] = Map<String, dynamic>.from(value);
+          }
+        });
       }
+      return members;
+    });
+  }
+
+  void _getoutofroom() {
+    _membersStream().listen((members) {
+      _databaseReference
+          .child('GameRoom-Status/${widget.roomId}/quantity')
+          .onValue
+          .first
+          .then((event) {
+        final quantity = event.snapshot.value as int;
+        if (members.length > quantity) {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('방 용량 초과'),
+                content: const Text('방 용량이 초과되어 퇴장해야 합니다.'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      // 사용자 데이터베이스에서 삭제
+                      _databaseReference
+                          .child(
+                              'GameRoom-Status/${widget.roomId}/members/${widget.nickname}')
+                          .remove()
+                          .then((_) {
+                        // 사용자 퇴장 처리
+                        Navigator.of(context).pop();
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const main.Room()));
+                      });
+                    },
+                    child: const Text('Exit'),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      });
     });
   }
 
@@ -181,6 +239,40 @@ class _WaitingState extends State<Waiting> {
       ),
       body: Column(
         children: [
+          // 유저 리스트 영역
+          StreamBuilder<Map<String, Map<String, dynamic>>>(
+            stream: memberslist(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.active) {
+                if (snapshot.hasData) {
+                  final members = snapshot.data;
+                  final userList =
+                      members?.values.toList() ?? []; // 멤버 정보를 리스트로 변환
+                  return SizedBox(
+                    height: 100, // 유저 리스트 영역의 높이 조정
+                    child: ListView.builder(
+                      itemCount: userList.length,
+                      itemBuilder: (context, index) {
+                        final user = userList[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            child: Text(user['Username'][0]),
+                          ),
+                          title: Text(user['Username']),
+                          subtitle: Text('Rank: ${user['rankpoint']}'),
+                        );
+                      },
+                    ),
+                  );
+                } else {
+                  return const Center(child: Text('No data available'));
+                }
+              } else {
+                return const Center(child: CircularProgressIndicator());
+              }
+            },
+          ),
+          const SizedBox(height: 16),
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: _chating(),
