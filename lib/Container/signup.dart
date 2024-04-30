@@ -157,7 +157,6 @@ class _SignUpState extends State<Signuppage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Sign Up'),
       ),
       body: Center(
         child: Padding(
@@ -165,6 +164,16 @@ class _SignUpState extends State<Signuppage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 48.0),
+                child: Text(
+                  '회원 가입',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 36.0,
+                  ),
+                ),
+              ),
               TextField(
                 controller: _nameController,
                 decoration: const InputDecoration(

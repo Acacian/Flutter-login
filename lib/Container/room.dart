@@ -72,7 +72,7 @@ class _Room extends State<Room> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Your Game Page'),
+        title: const Text('게임 로비'),
         actions: [
           IconButton(
             iconSize: 120,
@@ -111,17 +111,19 @@ class _Room extends State<Room> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(48.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              decoration: const InputDecoration(
-                labelText: '검색할 게임을 입력하세요',
+            Container(
+              width: 500,
+              child: TextField(
+                decoration: const InputDecoration(
+                  labelText: '검색할 게임을 입력하세요',
+                ),
+                controller: _searchController, // 검색어 입력을 위한 컨트롤러
               ),
-              controller: _searchController, // 검색어 입력을 위한 컨트롤러
-            ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
                 // 검색 버튼을 너무 자주 누르면 안 되니까 1초 딜레이를 줌
@@ -131,6 +133,7 @@ class _Room extends State<Room> {
                 });
               },
               child: const Text('검색'),
+            ),
             ),
             const SizedBox(height: 16),
             Expanded(

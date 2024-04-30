@@ -3,11 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:logger/logger.dart';
 
-// DB 저장할거임
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // DB 저장
 
-// 로그인 성공 시 다음 화면으로 넘어감
-import 'room.dart' as room;
+import 'room.dart' as room; // 로그인 성공 시 다음 화면으로 넘어감
 import 'signup.dart' as signup;
 
 class Loginpage extends StatefulWidget {
@@ -27,7 +25,6 @@ class _LoginState extends State<Loginpage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Login Page'),
       ),
       body: Center(
         child: Padding(
@@ -35,21 +32,38 @@ class _LoginState extends State<Loginpage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  hintText: 'Email',
-                  border: OutlineInputBorder(),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 48.0),
+                child: Text(
+                  '로그인',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 72.0,
+                  ),
                 ),
               ),
-              const SizedBox(height: 16.0),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  hintText: 'Password',
-                  border: OutlineInputBorder(),
+              Container(
+                width: 500,
+                padding: const EdgeInsets.fromLTRB(48.0, 16.0, 48.0, 16.0),
+                child: TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    hintText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              Container(
+                width: 500,
+                padding: const EdgeInsets.fromLTRB(48.0, 0, 48.0, 0),
+                child: TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    hintText: 'Password',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
               ),
               const SizedBox(height: 16.0),
@@ -59,31 +73,43 @@ class _LoginState extends State<Loginpage> {
                   style: const TextStyle(color: Colors.red),
                 ),
               const SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: () {
-                  _login();
-                },
-                child: const Text('Login'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      _login();
+                    },
+                    child: const Text('Login'),
+                  ),
+                  const SizedBox(height: 24.0, width: 16.0),
+                  ElevatedButton(
+                    onPressed: () {
+                      // 회원가입 화면으로 이동하는 로직 추가
+                      Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const signup.Signuppage(),
+                          ),
+                          (route) => false);
+                    },
+                    child: const Text('Sign Up'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 32.0),
+              const SizedBox(height: 34.0),
               ElevatedButton(
                 onPressed: () {
                   signInWithGoogle(context);
                 },
                 child: const Text('Sign in with Google'),
               ),
-              const SizedBox(height: 32.0),
+              const SizedBox(height: 12.0),
               ElevatedButton(
                 onPressed: () {
-                  // 회원가입 화면으로 이동하는 로직 추가
-                  Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const signup.Signuppage(),
-                      ),
-                      (route) => false);
+                  signInWithGoogle(context);
                 },
-                child: const Text('Sign Up'),
+                child: const Text('Sign in with ###'),
               ),
             ],
           ),
