@@ -35,7 +35,7 @@ class _LoginState extends State<Loginpage> {
               const Padding(
                 padding: EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 48.0),
                 child: Text(
-                  '로그인',
+                  'LOGIN',
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 72.0,

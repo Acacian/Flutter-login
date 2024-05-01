@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:logger/logger.dart';
 import 'package:http/http.dart' as http;
 import 'make.dart' as make;
@@ -13,6 +15,7 @@ import "auth.dart";
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:firebase_database/firebase_database.dart';
 
+// 현재 막코딩되어 있음. 필요하다면 후에 모듈화할 예정.
 class Room extends StatefulWidget {
   const Room({super.key});
 
@@ -72,7 +75,7 @@ class _Room extends State<Room> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('게임 로비'),
+        title: const Text('LOBBY'),
         actions: [
           IconButton(
             iconSize: 120,
@@ -113,30 +116,37 @@ class _Room extends State<Room> {
       body: Padding(
         padding: const EdgeInsets.all(48.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              width: 500,
-              child: TextField(
-                decoration: const InputDecoration(
-                  labelText: '검색할 게임을 입력하세요',
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 400,
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      labelText: '검색할 게임을 입력하세요',
+                    ),
+                    controller: _searchController, // 검색어 입력을 위한 컨트롤러
+                  ),
                 ),
-                controller: _searchController, // 검색어 입력을 위한 컨트롤러
-              ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                // 검색 버튼을 너무 자주 누르면 안 되니까 1초 딜레이를 줌
-                Future.delayed(const Duration(seconds: 1), () {});
-                setState(() {
-                  _filterGameList(_searchController.text);
-                });
-              },
-              child: const Text('검색'),
+                SizedBox(
+                  width: 80,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // 검색 버튼을 너무 자주 누르면 안 되니까 1초 딜레이를 줌
+                      Future.delayed(const Duration(seconds: 1), () {});
+                      setState(() {
+                        _filterGameList(_searchController.text);
+                      });
+                    },
+                    child: const Text('검색'),
+                  ),
+                ),
+              ],
             ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
+            SizedBox(
+              height: 16,
               child: ListView.builder(
                 itemCount: _filteredGameList.length,
                 itemBuilder: (context, index) {
@@ -165,27 +175,33 @@ class _Room extends State<Room> {
               ),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const make.Make()),
-                );
-                logger.i('Create Game 버튼 클릭');
-              },
-              child: const Text('Create Game'),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                // 선택된 listtile의 index, 즉 게임 이름을 가져와서 join하는 함수 호출
-                if (_selectedGameIndex == -1) {
-                  logger.e('게임을 선택해주세요');
-                  return;
-                }
-                join();
-              },
-              child: const Text('Join'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    // 선택된 listtile의 index, 즉 게임 이름을 가져와서 join하는 함수 호출
+                    if (_selectedGameIndex == -1) {
+                      logger.e('게임을 선택해주세요');
+                      return;
+                    }
+                    join();
+                  },
+                  child: const Text('Join'),
+                ),
+                const SizedBox(width: 15,),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const make.Make()),
+                    );
+                    logger.i('Create Game 버튼 클릭');
+                  },
+                  child: const Text('Create Game'),
+                ),
+              ],
             ),
           ],
         ),

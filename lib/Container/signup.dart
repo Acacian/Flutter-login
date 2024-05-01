@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:logger/logger.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:login/Container/Widgets/signup_container.dart';
 
 import 'auth.dart' as auth;
 
@@ -163,7 +164,7 @@ class _SignUpState extends State<Signuppage> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            children: <Widget>[
               const Padding(
                 padding: EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 48.0),
                 child: Text(
@@ -174,40 +175,16 @@ class _SignUpState extends State<Signuppage> {
                   ),
                 ),
               ),
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  hintText: 'Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
+              SignupTextField(controller: _nameController, hintText: 'Name'),
               const SizedBox(height: 16.0),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  hintText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-              ),
+              SignupTextField(controller: _emailController, hintText: 'Email'),
               const SizedBox(height: 16.0),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  hintText: 'Password',
-                  border: OutlineInputBorder(),
-                ),
-              ),
+              SignupTextField(
+                  controller: _passwordController, hintText: 'Password'),
               const SizedBox(height: 16.0),
-              TextField(
-                controller: _confirmPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  hintText: 'Confirm Password',
-                  border: OutlineInputBorder(),
-                ),
-              ),
+              SignupTextField(
+                  controller: _confirmPasswordController,
+                  hintText: 'Confirm Password'),
               const SizedBox(height: 16.0),
               if (_errorMessage != null)
                 Text(

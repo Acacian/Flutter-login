@@ -44,65 +44,79 @@ class _Make extends State<Make> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Home Page'),
+        title: const Text('CREATE ROOM'),
       ),
       body: Stack(
         children: [
           Center(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: <Widget>[
-                const SizedBox(height: 60.0),
-                TextField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    hintText: 'Game Name',
-                    border: OutlineInputBorder(),
+                const SizedBox(height: 200.0),
+                Container(
+                  width: 320,
+                  child: TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      hintText: 'Game Name',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 16.0),
-                ToggleButtons(
-                  isSelected: isSelected,
-                  borderColor: Colors.grey,
-                  borderWidth: 2,
-                  borderRadius: BorderRadius.circular(8),
-                  selectedBorderColor: Colors.blue,
-                  selectedColor: Colors.white,
-                  fillColor: Colors.blue,
-                  color: Colors.black,
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  onPressed: (int index) {
-                    setState(() {
-                      isSelected[0] = index == 0;
-                      isSelected[1] = index == 1;
-                      _publicController.text =
-                          isSelected[0] ? 'Public' : 'Private';
-                      logger.i(index);
-                    });
-                  },
-                  children: const <Widget>[
-                    Text('Public'),
-                    Text('Private'),
+                const SizedBox(height: 40.0),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 120,
+                      child: TextField(
+                        controller: _maxController,
+                        decoration: const InputDecoration(
+                          hintText: 'Max Users',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 20.0),
+                    ToggleButtons(
+                      isSelected: isSelected,
+                      borderColor: Colors.grey,
+                      borderWidth: 2,
+                      borderRadius: BorderRadius.circular(8),
+                      selectedBorderColor: Colors.blue,
+                      selectedColor: Colors.white,
+                      fillColor: Colors.blue,
+                      color: Colors.black,
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      onPressed: (int index) {
+                        setState(() {
+                          isSelected[0] = index == 0;
+                          isSelected[1] = index == 1;
+                          _publicController.text =
+                              isSelected[0] ? 'Public' : 'Private';
+                          logger.i(index);
+                        });
+                      },
+                      children: const <Widget>[
+                        Text('Public'),
+                        Text('Private'),
+                      ],
+                    ),
                   ],
                 ),
-                const SizedBox(height: 16.0),
-                TextField(
-                  controller: _maxController,
-                  decoration: const InputDecoration(
-                    hintText: 'Max Users',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16.0),
+                const SizedBox(height: 40.0),
                 if (_publicController.text == 'Private') ...[
-                  TextField(
-                    controller: _privateController,
-                    decoration: const InputDecoration(
-                      hintText: 'Password for Private Game',
-                      border: OutlineInputBorder(),
+                  Container(
+                    width: 320,
+                    child: TextField(
+                      controller: _privateController,
+                      decoration: const InputDecoration(
+                        hintText: 'Password for Private Game',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16.0),
@@ -111,7 +125,7 @@ class _Make extends State<Make> {
             ),
           ),
           Align(
-            alignment: Alignment.bottomRight,
+            alignment: Alignment.bottomCenter,
             child: Padding(
               padding: const EdgeInsets.only(bottom: 50.0),
               child: Row(
