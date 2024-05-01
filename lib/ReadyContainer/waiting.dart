@@ -36,8 +36,8 @@ class _WaitingState extends State<Waiting> {
     _messageController = TextEditingController();
 
     _initializeSocketIO();
+    _membersStream();
     membersjoin();
-    memberslist();
     _getoutofroom();
     _chating();
   }
@@ -129,7 +129,7 @@ class _WaitingState extends State<Waiting> {
     }
   }
 
-  Stream<Map<String, Map<String, dynamic>>> memberslist() {
+  Stream<Map<String, Map<String, dynamic>>> _membersStream() {
     return _databaseReference
         .child('GameRoom-Status/${widget.roomId}/members')
         .onValue
@@ -143,25 +143,42 @@ class _WaitingState extends State<Waiting> {
           }
         });
       }
-      logger.i('members: $members');
       return members;
     });
   }
 
   @override
-  void dispose() {
+  void dispose() async {
+    final DataSnapshot snapshot = await _databaseReference
+        .child('GameRoom-Status/${widget.roomId}/members')
+        .get();
+    final members = snapshot.value as Map<dynamic, dynamic>;
+    final newMemberRef = members.entries.firstWhere(
+      (element) => element.value['Username'] == widget.nickname,
+    );
+
     _databaseReference
-        .child('GameRoom-Status/${widget.roomId}/members/${widget.nickname}')
+        .child('GameRoom-Status/${widget.roomId}/members/${newMemberRef.key}')
         .remove();
     _socket.disconnect();
     super.dispose();
   }
 
   void _leaveRoom() async {
+    // 데이터베이스에서 유저 찾기
+    final DataSnapshot snapshot = await _databaseReference
+        .child('GameRoom-Status/${widget.roomId}/members')
+        .get();
+    final members = snapshot.value as Map<dynamic, dynamic>;
+    final newMemberRef = members.entries.firstWhere(
+      (element) => element.value['Username'] == widget.nickname,
+    );
+
+    logger.e('${newMemberRef.key}');
     try {
       // 유저 정보 삭제
       await _databaseReference
-          .child('GameRoom-Status/${widget.roomId}/members/${widget.nickname}')
+          .child('GameRoom-Status/${widget.roomId}/members/${newMemberRef.key}')
           .remove();
 
       // 방 정보 업데이트
@@ -183,25 +200,15 @@ class _WaitingState extends State<Waiting> {
       }
     } catch (error) {
       logger.e('방을 나갈 수 없습니다!: $error');
-    }
-  }
-
-  Stream<Map<String, Map<String, dynamic>>> _membersStream() {
-    return _databaseReference
-        .child('GameRoom-Status/${widget.roomId}/members')
-        .onValue
-        .map((event) {
-      final members = <String, Map<String, dynamic>>{};
-      final data = event.snapshot.value;
-      if (data != null && data is Map<dynamic, dynamic>) {
-        data.forEach((key, value) {
-          if (value is Map<dynamic, dynamic>) {
-            members[key] = Map<String, dynamic>.from(value);
-          }
-        });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('방을 나가는 데 실패했습니다. 다시 시도해 주세요.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
       }
-      return members;
-    });
+    }
   }
 
   void _getoutofroom() {
@@ -308,6 +315,7 @@ class _WaitingState extends State<Waiting> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Waiting Room'),
         actions: [
           ElevatedButton(
@@ -348,7 +356,7 @@ class _WaitingState extends State<Waiting> {
           SizedBox(
             height: 100, // 유저 리스트 영역의 높이 조정
             child: StreamBuilder<Map<String, Map<String, dynamic>>>(
-              stream: memberslist(),
+              stream: _membersStream(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.active) {
                   if (snapshot.hasData) {

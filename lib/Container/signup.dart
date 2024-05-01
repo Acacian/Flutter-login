@@ -81,6 +81,31 @@ class _SignUpState extends State<Signuppage> {
       });
       return;
     }
+    // 중복된 닉네임인지/이메일인지 확인
+    final QuerySnapshot result = await FirebaseFirestore.instance
+        .collection('Users')
+        .where('nickname', isEqualTo: name)
+        .get();
+    final List<DocumentSnapshot> documents = result.docs;
+    if (documents.isNotEmpty) {
+      logger.e('중복된 닉네임입니다');
+      setState(() {
+        _errorMessage = '중복된 닉네임입니다';
+      });
+      return;
+    }
+
+    final QuerySnapshot result2 = await FirebaseFirestore.instance
+        .collection('Users')
+        .where('email', isEqualTo: email)
+        .get();
+    final List<DocumentSnapshot> documents2 = result2.docs;
+    if (documents2.isNotEmpty) {
+      setState(() {
+        _errorMessage = '중복된 이메일입니다';
+      });
+      return;
+    }
 
     void showSnackBar(String message) {
       ScaffoldMessenger.of(context).showSnackBar(

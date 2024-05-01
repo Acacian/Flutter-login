@@ -349,6 +349,7 @@ class _Make extends State<Make> {
 
     if (mounted && isCreated == true) {
       try {
+        final nickname = await storeNickname;
         final rankpoint = await yourRankpoint;
         if (mounted) {
           Navigator.push(
@@ -356,8 +357,8 @@ class _Make extends State<Make> {
             MaterialPageRoute(
               builder: (context) => waiting.Waiting(
                 roomId: selectedGameId,
-                nickname: FirebaseAuth.instance.currentUser?.displayName ??
-                    storeNickname.toString(),
+                nickname:
+                    FirebaseAuth.instance.currentUser?.displayName ?? nickname,
                 rankpoint: rankpoint,
               ),
               fullscreenDialog: true,
