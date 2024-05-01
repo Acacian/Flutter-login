@@ -147,23 +147,6 @@ class _WaitingState extends State<Waiting> {
     });
   }
 
-  @override
-  void dispose() async {
-    final DataSnapshot snapshot = await _databaseReference
-        .child('GameRoom-Status/${widget.roomId}/members')
-        .get();
-    final members = snapshot.value as Map<dynamic, dynamic>;
-    final newMemberRef = members.entries.firstWhere(
-      (element) => element.value['Username'] == widget.nickname,
-    );
-
-    _databaseReference
-        .child('GameRoom-Status/${widget.roomId}/members/${newMemberRef.key}')
-        .remove();
-    _socket.disconnect();
-    super.dispose();
-  }
-
   void _leaveRoom() async {
     // 데이터베이스에서 유저 찾기
     final DataSnapshot snapshot = await _databaseReference
@@ -174,13 +157,11 @@ class _WaitingState extends State<Waiting> {
       (element) => element.value['Username'] == widget.nickname,
     );
 
-    logger.e('${newMemberRef.key}');
     try {
       // 유저 정보 삭제
       await _databaseReference
           .child('GameRoom-Status/${widget.roomId}/members/${newMemberRef.key}')
           .remove();
-
       // 방 정보 업데이트
       DatabaseReference roomRef =
           _databaseReference.child('GameRoom-Status/${widget.roomId}');
@@ -190,10 +171,13 @@ class _WaitingState extends State<Waiting> {
             Map<String, dynamic>.from(snapshot.value as Map<dynamic, dynamic>);
         updatedMembers.remove(widget.nickname);
         await roomRef.update({'members': updatedMembers});
+        _socket.disconnect();
+        super.dispose();
       } else {
         await roomRef.remove();
+        _socket.disconnect();
+        super.dispose();
       }
-
       // 방 나가기
       if (mounted) {
         Navigator.of(context).pop();
@@ -211,7 +195,14 @@ class _WaitingState extends State<Waiting> {
     }
   }
 
-  void _getoutofroom() {
+  void _getoutofroom() async {
+    final DataSnapshot snapshot = await _databaseReference
+        .child('GameRoom-Status/${widget.roomId}/members')
+        .get();
+    final members = snapshot.value as Map<dynamic, dynamic>;
+    final newMemberRef = members.entries.firstWhere(
+      (element) => element.value['Username'] == widget.nickname,
+    );
     _membersStream().listen((members) {
       _databaseReference
           .child('GameRoom-Status/${widget.roomId}/quantity')
@@ -232,7 +223,7 @@ class _WaitingState extends State<Waiting> {
                       // 사용자 데이터베이스에서 삭제
                       _databaseReference
                           .child(
-                              'GameRoom-Status/${widget.roomId}/members/${widget.nickname}')
+                              'GameRoom-Status/${widget.roomId}/members/${newMemberRef.key}')
                           .remove()
                           .then((_) {
                         // 사용자 퇴장 처리
