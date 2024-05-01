@@ -1,5 +1,5 @@
-name: login
-description: "A new Flutter project."
+name: flame_realtime_shooting
+description: "Multiplayer shooting game using Flutter, Flame and Supabase."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -46,6 +46,8 @@ dependencies:
   socket_io_client: ^2.0.3+1
   flame: ^1.17.0
   flame_forge2d: ^0.18.0
+  supabase_flutter: ^2.5.2
+  uuid: ^4.4.0
 
 dev_dependencies:
   flutter_test:
